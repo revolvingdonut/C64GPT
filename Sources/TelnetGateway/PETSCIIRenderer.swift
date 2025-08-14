@@ -248,7 +248,7 @@ public class PETSCIIRenderer {
             processedText = processedText.replacingOccurrences(of: emoji, with: replacement)
         }
         
-        // Reverse case for PETSCII effect
+        // Reverse case for PETSCII effect, but preserve apostrophes and contractions
         processedText = processedText.map { char in
             if char.isUppercase {
                 return char.lowercased().first!
@@ -257,6 +257,15 @@ public class PETSCIIRenderer {
             }
             return char
         }.map(String.init).joined()
+        
+        // Fix common contractions that got broken by case reversal
+        processedText = processedText
+            .replacingOccurrences(of: " ' S", with: "'S")
+            .replacingOccurrences(of: " ' T", with: "'T")
+            .replacingOccurrences(of: " ' RE", with: "'RE")
+            .replacingOccurrences(of: " ' VE", with: "'VE")
+            .replacingOccurrences(of: " ' LL", with: "'LL")
+            .replacingOccurrences(of: " ' D", with: "'D")
         
         // Debug: print the case-reversed text
         print("🔤 Case reversed: '\(processedText)'")
