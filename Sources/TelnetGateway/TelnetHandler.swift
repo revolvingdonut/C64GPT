@@ -90,6 +90,11 @@ public class TelnetHandler: ChannelInboundHandler {
                 // Send backspace sequence
                 sendBackspace(context: context)
             }
+        case 32: // Space character
+            // Handle space character - ensure it's properly echoed
+            session.currentLine.append(" ")
+            sendBytes([32], context: context) // Send space byte directly
+            
         default:
             // Echo the character as user types and add to current line
             let char = Character(UnicodeScalar(byte))
@@ -132,8 +137,8 @@ public class TelnetHandler: ChannelInboundHandler {
             return
         }
         
-        // Don't echo the input since it's already displayed
-        // sendLine("You: \(trimmed)", context: context)
+        // Add spacing for readability
+        sendLine("", context: context) // Empty line before AI response
         
         // Check for natural language commands
         if let command = parseNaturalLanguageCommand(trimmed) {
@@ -208,8 +213,11 @@ public class TelnetHandler: ChannelInboundHandler {
             
             for try await chunk in stream {
                 if !chunk.response.isEmpty {
-                    // Filter out command tags
-                    let filteredResponse = chunk.response.replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
+                    // Filter out command tags (multiple patterns)
+                    let filteredResponse = chunk.response
+                        .replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<CMD:[^>]*/>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<Cmd:[^>]*/>"#, with: "", options: .regularExpression)
                     
                     if !filteredResponse.isEmpty {
                         // Clean up the response text

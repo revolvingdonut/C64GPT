@@ -248,6 +248,16 @@ public class PETSCIIRenderer {
             processedText = processedText.replacingOccurrences(of: emoji, with: replacement)
         }
         
+        // Reverse case for PETSCII effect
+        processedText = processedText.map { char in
+            if char.isUppercase {
+                return char.lowercased().first!
+            } else if char.isLowercase {
+                return char.uppercased().first!
+            }
+            return char
+        }.map(String.init).joined()
+        
         // Word wrap the text
         let words = processedText.components(separatedBy: " ")
         var currentLine = ""
