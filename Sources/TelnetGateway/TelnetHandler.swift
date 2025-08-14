@@ -96,13 +96,14 @@ public class TelnetHandler: ChannelInboundHandler {
         case 32: // Space character
             // Handle space character - ensure it's properly echoed
             session.currentLine.append(" ")
-            sendBytes([32], context: context) // Send space byte directly
+            sendBytes([32], context: context) // Send space byte directly (no change needed)
             
         default:
             // Echo the character as user types and add to current line
             let char = Character(UnicodeScalar(byte))
             session.currentLine.append(char)
-            echoCharacter(char, context: context)
+            // Send character directly without PETSCII case reversal for user input
+            sendBytes([byte], context: context)
         }
     }
     
