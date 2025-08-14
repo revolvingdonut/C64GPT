@@ -263,10 +263,15 @@ public class PETSCIIRenderer {
         
         for char in processedText {
             if char == " " {
-                // Handle space character
-                if currentLineLength < width {
-                    result.append(32) // Space byte
-                    currentLineLength += 1
+                // Handle space character - always render it
+                result.append(32) // Space byte
+                currentLineLength += 1
+                
+                // Check if we need to wrap after space
+                if currentLineLength >= width {
+                    result.append(13) // CR
+                    result.append(10) // LF
+                    currentLineLength = 0
                 }
             } else {
                 // Handle regular character

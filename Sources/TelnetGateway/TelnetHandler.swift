@@ -202,8 +202,8 @@ public class TelnetHandler: ChannelInboundHandler {
             
             let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
             
-            // Start streaming response
-            sendText("AI: ", context: context)
+            // Start streaming response with proper line break
+            sendLine("AI: ", context: context)
             
             let stream = ollamaClient.generateStream(
                 model: "gemma2:2b", // Default model
@@ -223,15 +223,18 @@ public class TelnetHandler: ChannelInboundHandler {
                         .replacingOccurrences(of: #"<Cmd:[^>]*>"#, with: "", options: .regularExpression)
                     
                     if !filteredResponse.isEmpty {
-                        // Clean up the response text
+                        // Clean up the response text but preserve spaces
                         let cleanedResponse = filteredResponse
                             .trimmingCharacters(in: .whitespacesAndNewlines)
                             .replacingOccurrences(of: "\n", with: " ")
                             .replacingOccurrences(of: "  ", with: " ")
                         
                         if !cleanedResponse.isEmpty {
+                            // Add a space at the beginning if needed
+                            let responseWithSpace = cleanedResponse.hasPrefix(" ") ? cleanedResponse : " \(cleanedResponse)"
+                            
                             // Process the response with pacing
-                            let pacedChunks = pacingEngine.processText(cleanedResponse)
+                            let pacedChunks = pacingEngine.processText(responseWithSpace)
                             
                             for pacedChunk in pacedChunks {
                                 if !pacedChunk.text.isEmpty {
