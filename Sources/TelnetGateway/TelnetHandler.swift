@@ -285,7 +285,8 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendPrompt(context: ChannelHandlerContext) {
-        sendText("> ", context: context)
+        // Send prompt directly without PETSCII case reversal
+        sendBytes([62, 32], context: context) // "> " as bytes
     }
     
     private func sendLine(_ text: String, context: ChannelHandlerContext) {
