@@ -82,7 +82,8 @@ public class TelnetHandler: ChannelInboundHandler {
                 let input = session.currentLine
                 session.currentLine = ""
                 // Add blank line after user input is complete
-                sendBytes([13, 10], context: context) // CR + LF for blank line after user input
+                print("🔍 DEBUG: Adding blank line after user input")
+                sendBytes([13, 10, 13, 10], context: context) // CR + LF + CR + LF for blank line after user input
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
@@ -266,7 +267,8 @@ public class TelnetHandler: ChannelInboundHandler {
             }
             
             // Add proper line breaks after AI response - blank line before prompt
-            sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
+            print("🔍 DEBUG: Adding blank line after AI response")
+            sendBytes([13, 10, 13, 10], context: context) // CR + LF + CR + LF for blank line after AI response
             sendPrompt(context: context)
             
         } catch {
