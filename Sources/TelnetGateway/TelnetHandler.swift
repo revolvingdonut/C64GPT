@@ -212,6 +212,7 @@ public class TelnetHandler: ChannelInboundHandler {
                 options: GenerateOptions(temperature: 0.7)
             )
             
+            var fullResponse = ""
             var isFirstChunk = true
             
             for try await chunk in stream {
@@ -241,31 +242,20 @@ public class TelnetHandler: ChannelInboundHandler {
                             let responseWithSpace = shouldAddSpace ? " \(cleanedResponse)" : cleanedResponse
                             isFirstChunk = false
                             
-                            print("🔍 DEBUG: Response with space: '\(responseWithSpace)'")
+                            // Accumulate the full response
+                            fullResponse += responseWithSpace
                             
-                            // Process the response with pacing
-                            let pacedChunks = pacingEngine.processText(responseWithSpace)
-                            
-                            for pacedChunk in pacedChunks {
-                                if !pacedChunk.text.isEmpty {
-                                    print("🔍 DEBUG: Paced chunk: '\(pacedChunk.text)'")
-                                    // Render and send the text
-                                    let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
-                                    print("🔍 DEBUG: Rendered bytes: \(rendered)")
-                                    sendBytes(rendered, context: context)
-                                    
-                                    // Apply pacing delay
-                                    if pacedChunk.paceMs > 0 {
-                                        try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
-                                    }
-                                } else if pacedChunk.state == .pause {
-                                    // Handle pause
-                                    try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
-                                }
-                            }
+                            print("🔍 DEBUG: Accumulated response: '\(fullResponse)'")
                         }
                     }
                 }
+            }
+            
+            // Now render the complete response with proper word wrap
+            if !fullResponse.isEmpty {
+                print("🔍 DEBUG: Final full response: '\(fullResponse)'")
+                let rendered = renderer.render(fullResponse, mode: config.renderMode, width: config.width)
+                sendBytes(rendered, context: context)
             }
             
             // Add proper line breaks after AI response - blank line before prompt
