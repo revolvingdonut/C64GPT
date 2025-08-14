@@ -258,46 +258,35 @@ public class PETSCIIRenderer {
             return char
         }.map(String.init).joined()
         
-        // Word wrap the text
-        let words = processedText.components(separatedBy: " ")
-        var currentLine = ""
+        // Simple character-by-character rendering with word wrap
+        var currentLineLength = 0
         
-        for word in words {
-            if currentLine.count + word.count + 1 <= width {
-                // Add word to current line
-                if !currentLine.isEmpty {
-                    currentLine += " "
+        for char in processedText {
+            if char == " " {
+                // Handle space character
+                if currentLineLength < width {
+                    result.append(32) // Space byte
+                    currentLineLength += 1
                 }
-                currentLine += word
             } else {
-                // Start new line
-                if !currentLine.isEmpty {
-                    // Convert current line to PETSCII
-                    for char in currentLine {
-                        if let petsciiChar = unicodeToPetscii[char] {
-                            if let byte = petsciiChar.asciiValue {
-                                result.append(byte)
-                            }
-                        } else {
-                            result.append(32) // Space character
-                        }
-                    }
+                // Handle regular character
+                if currentLineLength >= width {
+                    // Wrap to new line
                     result.append(13) // CR
                     result.append(10) // LF
+                    currentLineLength = 0
                 }
-                currentLine = word
-            }
-        }
-        
-        // Add the last line
-        if !currentLine.isEmpty {
-            for char in currentLine {
+                
+                // Convert character to PETSCII
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {
                         result.append(byte)
+                        currentLineLength += 1
                     }
                 } else {
-                    result.append(32) // Space character
+                    // Unknown character - use space
+                    result.append(32)
+                    currentLineLength += 1
                 }
             }
         }

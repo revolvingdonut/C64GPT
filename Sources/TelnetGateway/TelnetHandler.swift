@@ -197,7 +197,7 @@ public class TelnetHandler: ChannelInboundHandler {
         do {
             // System prompt for C64-style responses
             let systemPrompt = """
-            You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. If the user clearly asks to perform a control action (quit, clear, switch model, set temperature, change width, switch ANSI/PETSCII), emit an invisible sideband tag using this exact syntax, on its own token: <cmd:ACTION .../>. Then continue your reply naturally.
+            You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. Do not use any special tags or formatting. Just respond naturally as a helpful AI assistant.
             """
             
             let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
@@ -218,6 +218,9 @@ public class TelnetHandler: ChannelInboundHandler {
                         .replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
                         .replacingOccurrences(of: #"<CMD:[^>]*/>"#, with: "", options: .regularExpression)
                         .replacingOccurrences(of: #"<Cmd:[^>]*/>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<cmd:[^>]*>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<CMD:[^>]*>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<Cmd:[^>]*>"#, with: "", options: .regularExpression)
                     
                     if !filteredResponse.isEmpty {
                         // Clean up the response text
