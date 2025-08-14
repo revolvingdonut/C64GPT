@@ -211,8 +211,11 @@ public class TelnetHandler: ChannelInboundHandler {
                 options: GenerateOptions(temperature: 0.7)
             )
             
+            var isFirstChunk = true
+            
             for try await chunk in stream {
                 if !chunk.response.isEmpty {
+                    print("🔍 DEBUG: Raw AI response: '\(chunk.response)'")
                     // Filter out command tags (multiple patterns)
                     let filteredResponse = chunk.response
                         .replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
@@ -229,14 +232,24 @@ public class TelnetHandler: ChannelInboundHandler {
                             .replacingOccurrences(of: "\n", with: " ")
                             .replacingOccurrences(of: "  ", with: " ")
                         
+                        print("🔍 DEBUG: Cleaned response: '\(cleanedResponse)'")
+                        
                         if !cleanedResponse.isEmpty {
-                            // Process the response with pacing (no extra spaces)
-                            let pacedChunks = pacingEngine.processText(cleanedResponse)
+                            // Add space before chunk if it's not the first one
+                            let responseWithSpace = isFirstChunk ? cleanedResponse : " \(cleanedResponse)"
+                            isFirstChunk = false
+                            
+                            print("🔍 DEBUG: Response with space: '\(responseWithSpace)'")
+                            
+                            // Process the response with pacing
+                            let pacedChunks = pacingEngine.processText(responseWithSpace)
                             
                             for pacedChunk in pacedChunks {
                                 if !pacedChunk.text.isEmpty {
+                                    print("🔍 DEBUG: Paced chunk: '\(pacedChunk.text)'")
                                     // Render and send the text
                                     let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
+                                    print("🔍 DEBUG: Rendered bytes: \(rendered)")
                                     sendBytes(rendered, context: context)
                                     
                                     // Apply pacing delay

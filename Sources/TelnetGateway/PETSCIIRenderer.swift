@@ -265,6 +265,8 @@ public class PETSCIIRenderer {
         var currentLineLength = 0
         
         for char in processedText {
+            print("🔍 DEBUG: Processing char: '\(char)' (ASCII: \(char.asciiValue ?? 0))")
+            
             // Check if we need to wrap before adding this character
             if currentLineLength >= width {
                 result.append(13) // CR
@@ -273,6 +275,7 @@ public class PETSCIIRenderer {
             }
             
             if char == " " {
+                print("🔍 DEBUG: Adding space byte (32)")
                 // Handle space character - always render it
                 result.append(32) // Space byte
                 currentLineLength += 1
@@ -280,11 +283,13 @@ public class PETSCIIRenderer {
                 // Convert character to PETSCII
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {
+                        print("🔍 DEBUG: Adding PETSCII char: '\(petsciiChar)' (byte: \(byte))")
                         result.append(byte)
                         currentLineLength += 1
                     }
                 } else {
                     // Unknown character - use space
+                    print("🔍 DEBUG: Unknown char '\(char)', using space")
                     result.append(32)
                     currentLineLength += 1
                 }
