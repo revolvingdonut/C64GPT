@@ -275,8 +275,9 @@ public class PETSCIIRenderer {
         var currentLineLength = 0
         
         for (index, word) in words.enumerated() {
-            // Check if this word would exceed the line width
-            if currentLineLength + word.count > width && currentLineLength > 0 {
+            // Check if this word would exceed the line width (including space after word)
+            let spaceNeeded = index < words.count - 1 ? 1 : 0 // Space after word if not last
+            if currentLineLength + word.count + spaceNeeded > width && currentLineLength > 0 {
                 // Wrap to new line before this word
                 result.append(13) // CR
                 result.append(10) // LF
