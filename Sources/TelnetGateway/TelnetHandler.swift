@@ -91,10 +91,9 @@ public class TelnetHandler: ChannelInboundHandler {
                 sendBackspace(context: context)
             }
         default:
-            // Echo the character and add to current line
+            // Add character to current line (don't echo yet)
             let char = Character(UnicodeScalar(byte))
             session.currentLine.append(char)
-            echoCharacter(char, context: context)
         }
     }
     
@@ -132,8 +131,8 @@ public class TelnetHandler: ChannelInboundHandler {
             return
         }
         
-        // Echo the input with newline
-        sendLine("You: \(trimmed)", context: context)
+        // Don't echo the input since it's already displayed
+        // sendLine("You: \(trimmed)", context: context)
         
         // Check for natural language commands
         if let command = parseNaturalLanguageCommand(trimmed) {
@@ -208,22 +207,27 @@ public class TelnetHandler: ChannelInboundHandler {
             
             for try await chunk in stream {
                 if !chunk.response.isEmpty {
-                    // Process the response with pacing
-                    let pacedChunks = pacingEngine.processText(chunk.response)
+                    // Filter out command tags
+                    let filteredResponse = chunk.response.replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
                     
-                    for pacedChunk in pacedChunks {
-                        if !pacedChunk.text.isEmpty {
-                            // Render and send the text
-                            let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
-                            sendBytes(rendered, context: context)
-                            
-                            // Apply pacing delay
-                            if pacedChunk.paceMs > 0 {
+                    if !filteredResponse.isEmpty {
+                        // Process the response with pacing
+                        let pacedChunks = pacingEngine.processText(filteredResponse)
+                        
+                        for pacedChunk in pacedChunks {
+                            if !pacedChunk.text.isEmpty {
+                                // Render and send the text
+                                let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
+                                sendBytes(rendered, context: context)
+                                
+                                // Apply pacing delay
+                                if pacedChunk.paceMs > 0 {
+                                    try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
+                                }
+                            } else if pacedChunk.state == .pause {
+                                // Handle pause
                                 try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
                             }
-                        } else if pacedChunk.state == .pause {
-                            // Handle pause
-                            try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
                         }
                     }
                 }
@@ -240,13 +244,12 @@ public class TelnetHandler: ChannelInboundHandler {
     
     private func sendWelcomeMessage(context: ChannelHandlerContext) {
         let welcome = """
-        ┌PETsponder v0.3────────────────────────────────────────┐
-        │Welcome to C64GPT!                                     │
-        │This is a local LLM that makes your C64 feel sentient. │
-        │                                                       │
-        │Type something and press Enter to chat...              │
-        │                                                       │
-        └───────────────────────────────────────────────────────┘
+        ========================================
+        Welcome to C64GPT!
+        This is a local LLM that makes your C64 feel sentient.
+        
+        Type something and press Enter to chat...
+        ========================================
         
         """
         

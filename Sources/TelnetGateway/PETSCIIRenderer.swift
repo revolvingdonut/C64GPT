@@ -251,13 +251,13 @@ public class PETSCIIRenderer {
         // Convert Unicode to PETSCII
         for char in processedText {
             if let petsciiChar = unicodeToPetscii[char] {
-                // Convert to PETSCII byte value
+                // Convert to ASCII byte value (simplified for now)
                 if let byte = petsciiChar.asciiValue {
                     result.append(byte)
                 }
             } else {
-                // Unknown character - use ▒ (block character)
-                result.append(0xB0) // PETSCII block character
+                // Unknown character - use space instead of block character
+                result.append(32) // Space character
             }
         }
         
