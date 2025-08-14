@@ -32,6 +32,7 @@ public class TelnetHandler: ChannelInboundHandler {
         
         // Send welcome message
         sendWelcomeMessage(context: context)
+        print("✅ Welcome message sent")
     }
     
     public func channelInactive(context: ChannelHandlerContext) {
@@ -42,7 +43,7 @@ public class TelnetHandler: ChannelInboundHandler {
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         var buffer = unwrapInboundIn(data)
         
-        // Process incoming data
+        // Process incoming data synchronously
         while buffer.readableBytes > 0 {
             if let byte = buffer.readInteger(as: UInt8.self) {
                 processByte(byte, context: context)
@@ -75,14 +76,13 @@ public class TelnetHandler: ChannelInboundHandler {
         
         // Handle special characters
         switch byte {
-        case TelnetConstants.CR:
-            // Carriage return - process the line
-            let input = session.currentLine
-            session.currentLine = ""
-            processUserInput(input, context: context)
-        case TelnetConstants.LF:
-            // Line feed - ignore (already handled by CR)
-            break
+        case TelnetConstants.CR, TelnetConstants.LF:
+            // Carriage return or line feed - process the line
+            if !session.currentLine.isEmpty {
+                let input = session.currentLine
+                session.currentLine = ""
+                processUserInput(input, context: context)
+            }
         case TelnetConstants.BS, TelnetConstants.DEL:
             // Backspace - remove last character
             if !session.currentLine.isEmpty {
@@ -127,8 +127,6 @@ public class TelnetHandler: ChannelInboundHandler {
     private func processUserInput(_ input: String, context: ChannelHandlerContext) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        print("📝 Processing input: '\(trimmed)'")
-        
         if trimmed.isEmpty {
             sendPrompt(context: context)
             return
@@ -139,15 +137,13 @@ public class TelnetHandler: ChannelInboundHandler {
         
         // Check for natural language commands
         if let command = parseNaturalLanguageCommand(trimmed) {
-            print("🔧 Executing command: \(command)")
             executeCommand(command, context: context)
             return
         }
         
-        print("🤖 No command detected, generating AI response...")
         // Generate AI response
         Task {
-            await generateAIResponse(for: trimmed, context: context)
+            await self.generateAIResponse(for: trimmed, context: context)
         }
     }
     
@@ -194,8 +190,6 @@ public class TelnetHandler: ChannelInboundHandler {
     
     private func generateAIResponse(for input: String, context: ChannelHandlerContext) async {
         do {
-            print("🤖 Generating AI response for: \(input)")
-            
             // System prompt for C64-style responses
             let systemPrompt = """
             You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. If the user clearly asks to perform a control action (quit, clear, switch model, set temperature, change width, switch ANSI/PETSCII), emit an invisible sideband tag using this exact syntax, on its own token: <cmd:ACTION .../>. Then continue your reply naturally.
@@ -206,18 +200,13 @@ public class TelnetHandler: ChannelInboundHandler {
             // Start streaming response
             sendText("AI: ", context: context)
             
-            print("📡 Starting Ollama stream...")
             let stream = ollamaClient.generateStream(
                 model: "gemma2:2b", // Default model
                 prompt: fullPrompt,
                 options: GenerateOptions(temperature: 0.7)
             )
             
-            var responseCount = 0
             for try await chunk in stream {
-                responseCount += 1
-                print("📦 Received chunk \(responseCount): '\(chunk.response)'")
-                
                 if !chunk.response.isEmpty {
                     // Process the response with pacing
                     let pacedChunks = pacingEngine.processText(chunk.response)
@@ -240,12 +229,10 @@ public class TelnetHandler: ChannelInboundHandler {
                 }
             }
             
-            print("✅ AI response complete")
             sendLine("", context: context) // New line after response
             sendPrompt(context: context)
             
         } catch {
-            print("❌ AI response error: \(error)")
             sendLine("AI: Sorry, I encountered an error: \(error.localizedDescription)", context: context)
             sendPrompt(context: context)
         }
@@ -292,9 +279,11 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendBytes(_ bytes: [UInt8], context: ChannelHandlerContext) {
-        var buffer = context.channel.allocator.buffer(capacity: bytes.count)
-        buffer.writeBytes(bytes)
-        context.writeAndFlush(wrapOutboundOut(buffer), promise: nil)
+        context.eventLoop.execute {
+            var buffer = context.channel.allocator.buffer(capacity: bytes.count)
+            buffer.writeBytes(bytes)
+            context.writeAndFlush(self.wrapOutboundOut(buffer), promise: nil)
+        }
     }
     
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
