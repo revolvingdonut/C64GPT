@@ -81,6 +81,8 @@ public class TelnetHandler: ChannelInboundHandler {
             if !session.currentLine.isEmpty {
                 let input = session.currentLine
                 session.currentLine = ""
+                // Add blank line after user input is complete
+                sendBytes([13, 10], context: context) // CR + LF for blank line after user input
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
@@ -136,9 +138,6 @@ public class TelnetHandler: ChannelInboundHandler {
             sendPrompt(context: context)
             return
         }
-        
-        // Add spacing for readability - blank line after user input
-        sendBytes([13, 10], context: context) // CR + LF for blank line after user input
         
         // Check for natural language commands
         if let command = parseNaturalLanguageCommand(trimmed) {
