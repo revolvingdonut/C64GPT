@@ -1,5 +1,6 @@
 import Foundation
 import NIO
+import OllamaClient
 
 /// Handles individual Telnet connections and implements RFC854 protocol
 public class TelnetHandler: ChannelInboundHandler {
@@ -8,11 +9,15 @@ public class TelnetHandler: ChannelInboundHandler {
     
     private let config: ServerConfig
     private let renderer: PETSCIIRenderer
+    private let ollamaClient: OllamaClient
+    private let pacingEngine: PacingEngine
     private var session: TelnetSession?
     
-    public init(config: ServerConfig, renderer: PETSCIIRenderer) {
+    public init(config: ServerConfig, renderer: PETSCIIRenderer, ollamaClient: OllamaClient, pacingEngine: PacingEngine) {
         self.config = config
         self.renderer = renderer
+        self.ollamaClient = ollamaClient
+        self.pacingEngine = pacingEngine
     }
     
     public func channelActive(context: ChannelHandlerContext) {
@@ -122,6 +127,8 @@ public class TelnetHandler: ChannelInboundHandler {
     private func processUserInput(_ input: String, context: ChannelHandlerContext) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
+        print("📝 Processing input: '\(trimmed)'")
+        
         if trimmed.isEmpty {
             sendPrompt(context: context)
             return
@@ -130,11 +137,118 @@ public class TelnetHandler: ChannelInboundHandler {
         // Echo the input with newline
         sendLine("You: \(trimmed)", context: context)
         
-        // For now, just echo back (we'll add LLM integration later)
-        let response = "AI: Hello! You said: '\(trimmed)'. This is the echo server - LLM integration coming soon!"
-        sendLine(response, context: context)
+        // Check for natural language commands
+        if let command = parseNaturalLanguageCommand(trimmed) {
+            print("🔧 Executing command: \(command)")
+            executeCommand(command, context: context)
+            return
+        }
         
-        sendPrompt(context: context)
+        print("🤖 No command detected, generating AI response...")
+        // Generate AI response
+        Task {
+            await generateAIResponse(for: trimmed, context: context)
+        }
+    }
+    
+    private func parseNaturalLanguageCommand(_ input: String) -> String? {
+        let lowercased = input.lowercased()
+        
+        // Natural language command patterns
+        if lowercased.contains("disconnect") || lowercased.contains("quit") || lowercased.contains("exit") {
+            return "quit"
+        }
+        if lowercased.contains("clear") {
+            return "clear"
+        }
+        if lowercased.contains("switch to") || lowercased.contains("use model") {
+            // Extract model name
+            let words = input.components(separatedBy: " ")
+            if let modelIndex = words.firstIndex(where: { $0.lowercased() == "to" || $0.lowercased() == "model" }) {
+                let modelName = words.dropFirst(modelIndex + 1).joined(separator: " ")
+                return "model \(modelName)"
+            }
+        }
+        
+        return nil
+    }
+    
+    private func executeCommand(_ command: String, context: ChannelHandlerContext) {
+        switch command {
+        case "quit":
+            sendLine("AI: Goodbye! Disconnecting...", context: context)
+            context.close(promise: nil)
+        case "clear":
+            // Send clear screen sequence
+            let clearScreen = "\u{1B}[2J\u{1B}[H" // ANSI clear screen
+            sendBytes(Array(clearScreen.utf8), context: context)
+            sendWelcomeMessage(context: context)
+        default:
+            if command.hasPrefix("model ") {
+                let modelName = String(command.dropFirst(6))
+                sendLine("AI: Switching to model: \(modelName)", context: context)
+                // TODO: Implement model switching
+            }
+        }
+    }
+    
+    private func generateAIResponse(for input: String, context: ChannelHandlerContext) async {
+        do {
+            print("🤖 Generating AI response for: \(input)")
+            
+            // System prompt for C64-style responses
+            let systemPrompt = """
+            You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. If the user clearly asks to perform a control action (quit, clear, switch model, set temperature, change width, switch ANSI/PETSCII), emit an invisible sideband tag using this exact syntax, on its own token: <cmd:ACTION .../>. Then continue your reply naturally.
+            """
+            
+            let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
+            
+            // Start streaming response
+            sendText("AI: ", context: context)
+            
+            print("📡 Starting Ollama stream...")
+            let stream = ollamaClient.generateStream(
+                model: "gemma2:2b", // Default model
+                prompt: fullPrompt,
+                options: GenerateOptions(temperature: 0.7)
+            )
+            
+            var responseCount = 0
+            for try await chunk in stream {
+                responseCount += 1
+                print("📦 Received chunk \(responseCount): '\(chunk.response)'")
+                
+                if !chunk.response.isEmpty {
+                    // Process the response with pacing
+                    let pacedChunks = pacingEngine.processText(chunk.response)
+                    
+                    for pacedChunk in pacedChunks {
+                        if !pacedChunk.text.isEmpty {
+                            // Render and send the text
+                            let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
+                            sendBytes(rendered, context: context)
+                            
+                            // Apply pacing delay
+                            if pacedChunk.paceMs > 0 {
+                                try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
+                            }
+                        } else if pacedChunk.state == .pause {
+                            // Handle pause
+                            try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
+                        }
+                    }
+                }
+            }
+            
+            print("✅ AI response complete")
+            sendLine("", context: context) // New line after response
+            sendPrompt(context: context)
+            
+        } catch {
+            print("❌ AI response error: \(error)")
+            sendLine("AI: Sorry, I encountered an error: \(error.localizedDescription)", context: context)
+            sendPrompt(context: context)
+        }
     }
     
     private func sendWelcomeMessage(context: ChannelHandlerContext) {

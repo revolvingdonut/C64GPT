@@ -1,5 +1,6 @@
 import Foundation
 import TelnetGateway
+import SystemPackage
 
 /// Main entry point for the Petsponder daemon
 @main
@@ -24,8 +25,16 @@ struct PetsponderDaemon {
             print("📡 Connect with: telnet localhost 6400")
             print("🛑 Press Ctrl+C to stop the server")
             
+            // Set up signal handling for graceful shutdown
+            signal(SIGINT) { _ in
+                print("\n🛑 Shutting down server...")
+                exit(0)
+            }
+            
             // Wait for the server to be closed
             try await channel.closeFuture.get()
+            
+            print("✅ Server stopped gracefully")
             
         } catch {
             print("❌ Failed to start server: \(error)")

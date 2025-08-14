@@ -1,6 +1,7 @@
 import Foundation
 import NIO
 import NIOConcurrencyHelpers
+import OllamaClient
 
 /// Main Telnet server that handles RFC854 protocol and connection management
 public class TelnetServer {
@@ -8,20 +9,26 @@ public class TelnetServer {
     private let bootstrap: ServerBootstrap
     private let config: ServerConfig
     private let renderer: PETSCIIRenderer
+    private let ollamaClient: OllamaClient
+    private let pacingEngine: PacingEngine
     
     public init(config: ServerConfig) throws {
         self.config = config
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
         self.renderer = PETSCIIRenderer()
+        self.ollamaClient = OllamaClient()
+        self.pacingEngine = PacingEngine()
         
         let renderer = self.renderer
         let config = self.config
+        let ollamaClient = self.ollamaClient
+        let pacingEngine = self.pacingEngine
         
         self.bootstrap = ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .childChannelInitializer { channel in
-                channel.pipeline.addHandler(TelnetHandler(config: config, renderer: renderer))
+                channel.pipeline.addHandler(TelnetHandler(config: config, renderer: renderer, ollamaClient: ollamaClient, pacingEngine: pacingEngine))
             }
             .childChannelOption(ChannelOptions.socketOption(.so_keepalive), value: 1)
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 1)

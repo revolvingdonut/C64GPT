@@ -36,6 +36,8 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio-extras.git", from: "1.20.0"),
         // JSON parsing
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
+        // Signal handling
+        .package(url: "https://github.com/apple/swift-system.git", from: "1.0.0"),
         // TOML configuration - we'll add this later when needed
         // .package(url: "https://github.com/toml-lang/toml-swift.git", from: "0.6.0")
     ],
@@ -61,7 +63,8 @@ let package = Package(
                 .product(name: "NIOHTTP2", package: "swift-nio-http2"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
                 .product(name: "NIOExtras", package: "swift-nio-extras"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "SystemPackage", package: "swift-system")
             ],
             path: "Sources/PetsponderDaemon"
         ),
