@@ -91,9 +91,10 @@ public class TelnetHandler: ChannelInboundHandler {
                 sendBackspace(context: context)
             }
         default:
-            // Add character to current line (don't echo yet)
+            // Echo the character as user types and add to current line
             let char = Character(UnicodeScalar(byte))
             session.currentLine.append(char)
+            echoCharacter(char, context: context)
         }
     }
     
@@ -211,22 +212,30 @@ public class TelnetHandler: ChannelInboundHandler {
                     let filteredResponse = chunk.response.replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
                     
                     if !filteredResponse.isEmpty {
-                        // Process the response with pacing
-                        let pacedChunks = pacingEngine.processText(filteredResponse)
+                        // Clean up the response text
+                        let cleanedResponse = filteredResponse
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .replacingOccurrences(of: "\n", with: " ")
+                            .replacingOccurrences(of: "  ", with: " ")
                         
-                        for pacedChunk in pacedChunks {
-                            if !pacedChunk.text.isEmpty {
-                                // Render and send the text
-                                let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
-                                sendBytes(rendered, context: context)
-                                
-                                // Apply pacing delay
-                                if pacedChunk.paceMs > 0 {
+                        if !cleanedResponse.isEmpty {
+                            // Process the response with pacing
+                            let pacedChunks = pacingEngine.processText(cleanedResponse)
+                            
+                            for pacedChunk in pacedChunks {
+                                if !pacedChunk.text.isEmpty {
+                                    // Render and send the text
+                                    let rendered = renderer.render(pacedChunk.text, mode: config.renderMode, width: config.width)
+                                    sendBytes(rendered, context: context)
+                                    
+                                    // Apply pacing delay
+                                    if pacedChunk.paceMs > 0 {
+                                        try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
+                                    }
+                                } else if pacedChunk.state == .pause {
+                                    // Handle pause
                                     try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
                                 }
-                            } else if pacedChunk.state == .pause {
-                                // Handle pause
-                                try await Task.sleep(nanoseconds: UInt64(pacedChunk.paceMs) * 1_000_000)
                             }
                         }
                     }

@@ -248,16 +248,47 @@ public class PETSCIIRenderer {
             processedText = processedText.replacingOccurrences(of: emoji, with: replacement)
         }
         
-        // Convert Unicode to PETSCII
-        for char in processedText {
-            if let petsciiChar = unicodeToPetscii[char] {
-                // Convert to ASCII byte value (simplified for now)
-                if let byte = petsciiChar.asciiValue {
-                    result.append(byte)
+        // Word wrap the text
+        let words = processedText.components(separatedBy: " ")
+        var currentLine = ""
+        
+        for word in words {
+            if currentLine.count + word.count + 1 <= width {
+                // Add word to current line
+                if !currentLine.isEmpty {
+                    currentLine += " "
                 }
+                currentLine += word
             } else {
-                // Unknown character - use space instead of block character
-                result.append(32) // Space character
+                // Start new line
+                if !currentLine.isEmpty {
+                    // Convert current line to PETSCII
+                    for char in currentLine {
+                        if let petsciiChar = unicodeToPetscii[char] {
+                            if let byte = petsciiChar.asciiValue {
+                                result.append(byte)
+                            }
+                        } else {
+                            result.append(32) // Space character
+                        }
+                    }
+                    result.append(13) // CR
+                    result.append(10) // LF
+                }
+                currentLine = word
+            }
+        }
+        
+        // Add the last line
+        if !currentLine.isEmpty {
+            for char in currentLine {
+                if let petsciiChar = unicodeToPetscii[char] {
+                    if let byte = petsciiChar.asciiValue {
+                        result.append(byte)
+                    }
+                } else {
+                    result.append(32) // Space character
+                }
             }
         }
         

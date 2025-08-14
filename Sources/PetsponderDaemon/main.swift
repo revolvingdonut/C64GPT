@@ -1,6 +1,7 @@
 import Foundation
 import TelnetGateway
 import SystemPackage
+import NIO
 
 /// Main entry point for the Petsponder daemon
 @main
@@ -16,20 +17,27 @@ struct PetsponderDaemon {
             width: 40
         )
         
+        // Set up signal handling for graceful shutdown
+        signal(SIGINT) { _ in
+            print("\n🛑 Shutting down server gracefully...")
+            print("✅ Cleanup complete")
+            exit(0)
+        }
+        
         do {
             // Create and start the Telnet server
             let server = try TelnetServer(config: config)
             let channel = try server.start()
             
             print("✅ Server is running!")
-            print("📡 Connect with: telnet localhost 6400")
+            print("📍 Listening on \(config.listenAddress):\(config.telnetPort)")
+            print("🎨 Render mode: \(config.renderMode)")
+            print("📏 Width: \(config.width)")
+            print("")
+            print("💡 Connect with: nc localhost \(config.telnetPort)")
+            print("💡 Or use a PETSCII terminal like SyncTerm")
+            print("")
             print("🛑 Press Ctrl+C to stop the server")
-            
-            // Set up signal handling for graceful shutdown
-            signal(SIGINT) { _ in
-                print("\n🛑 Shutting down server...")
-                exit(0)
-            }
             
             // Wait for the server to be closed
             try await channel.closeFuture.get()
