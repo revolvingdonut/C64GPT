@@ -204,7 +204,7 @@ public class TelnetHandler: ChannelInboundHandler {
             let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
             
             // Start streaming response with proper line break
-            sendText("AI: ", context: context)
+            // sendText("AI: ", context: context) // REMOVED: will include in response text
             
             let stream = ollamaClient.generateStream(
                 model: "gemma2:2b", // Default model
@@ -255,7 +255,9 @@ public class TelnetHandler: ChannelInboundHandler {
             // Now render the complete response with proper word wrap
             if !fullResponse.isEmpty {
                 print("🔍 DEBUG: Final full response: '\(fullResponse)'")
-                let rendered = renderer.render(fullResponse, mode: config.renderMode, width: config.width)
+                // Include "AI: " prefix in the response text so word wrap accounts for it
+                let responseWithPrefix = "AI: \(fullResponse)"
+                let rendered = renderer.render(responseWithPrefix, mode: config.renderMode, width: config.width)
                 sendBytes(rendered, context: context)
             }
             
