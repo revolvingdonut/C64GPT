@@ -258,30 +258,25 @@ public class PETSCIIRenderer {
             return char
         }.map(String.init).joined()
         
+        // Debug: print the case-reversed text
+        print("🔤 Case reversed: '\(processedText)'")
+        
         // Simple character-by-character rendering with word wrap
         var currentLineLength = 0
         
         for char in processedText {
+            // Check if we need to wrap before adding this character
+            if currentLineLength >= width {
+                result.append(13) // CR
+                result.append(10) // LF
+                currentLineLength = 0
+            }
+            
             if char == " " {
                 // Handle space character - always render it
                 result.append(32) // Space byte
                 currentLineLength += 1
-                
-                // Check if we need to wrap after space
-                if currentLineLength >= width {
-                    result.append(13) // CR
-                    result.append(10) // LF
-                    currentLineLength = 0
-                }
             } else {
-                // Handle regular character
-                if currentLineLength >= width {
-                    // Wrap to new line
-                    result.append(13) // CR
-                    result.append(10) // LF
-                    currentLineLength = 0
-                }
-                
                 // Convert character to PETSCII
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {

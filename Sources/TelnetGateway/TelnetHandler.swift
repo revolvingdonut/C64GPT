@@ -203,7 +203,7 @@ public class TelnetHandler: ChannelInboundHandler {
             let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
             
             // Start streaming response with proper line break
-            sendLine("AI: ", context: context)
+            sendText("AI: ", context: context)
             
             let stream = ollamaClient.generateStream(
                 model: "gemma2:2b", // Default model
@@ -230,11 +230,8 @@ public class TelnetHandler: ChannelInboundHandler {
                             .replacingOccurrences(of: "  ", with: " ")
                         
                         if !cleanedResponse.isEmpty {
-                            // Add a space at the beginning if needed
-                            let responseWithSpace = cleanedResponse.hasPrefix(" ") ? cleanedResponse : " \(cleanedResponse)"
-                            
-                            // Process the response with pacing
-                            let pacedChunks = pacingEngine.processText(responseWithSpace)
+                            // Process the response with pacing (no extra spaces)
+                            let pacedChunks = pacingEngine.processText(cleanedResponse)
                             
                             for pacedChunk in pacedChunks {
                                 if !pacedChunk.text.isEmpty {
@@ -256,7 +253,8 @@ public class TelnetHandler: ChannelInboundHandler {
                 }
             }
             
-            sendLine("", context: context) // New line after response
+            // Add proper line breaks after AI response
+            sendBytes([13, 10], context: context) // CR + LF
             sendPrompt(context: context)
             
         } catch {
