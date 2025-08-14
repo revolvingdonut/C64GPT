@@ -66,7 +66,14 @@ Everything runs locally on your Mac - no internet required after initial model d
 
 4. **Run the daemon:**
    ```bash
-   .build/release/PetsponderDaemon
+   # Using the management script (recommended)
+   ./start_server.sh
+   
+   # Or manually
+   swift run PetsponderDaemon
+   
+   # Stop the server
+   ./stop_server.sh
    ```
 
 5. **Connect from your C64/emulator:**
