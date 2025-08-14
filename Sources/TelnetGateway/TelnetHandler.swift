@@ -81,9 +81,9 @@ public class TelnetHandler: ChannelInboundHandler {
             if !session.currentLine.isEmpty {
                 let input = session.currentLine
                 session.currentLine = ""
-                        // TEMPORARILY COMMENTED OUT: Add blank line after user input is complete
-        // print("🔍 DEBUG: Adding blank line after user input")
-        // sendBytes([13, 10], context: context) // CR + LF for blank line after user input
+                        // Add blank line after user input is complete
+        print("🔍 DEBUG: Adding blank line after user input")
+        sendBytes([13, 10], context: context) // CR + LF for blank line after user input
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
@@ -102,8 +102,8 @@ public class TelnetHandler: ChannelInboundHandler {
             // Echo the character as user types and add to current line
             let char = Character(UnicodeScalar(byte))
             session.currentLine.append(char)
-            // Send character directly without PETSCII case reversal for user input
-            sendBytes([byte], context: context)
+            // Send character through word wrap system for consistent column tracking
+            echoCharacter(char, context: context)
         }
     }
     
@@ -261,9 +261,9 @@ public class TelnetHandler: ChannelInboundHandler {
                 sendBytes(rendered, context: context)
             }
             
-            // TEMPORARILY COMMENTED OUT: Add proper line breaks after AI response - blank line before prompt
-            // print("🔍 DEBUG: Adding blank line after AI response")
-            // sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
+            // Add proper line breaks after AI response - blank line before prompt
+            print("🔍 DEBUG: Adding blank line after AI response")
+            sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
             sendPrompt(context: context)
             
         } catch {
@@ -288,8 +288,8 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendPrompt(context: ChannelHandlerContext) {
-        // Send prompt directly without PETSCII case reversal
-        sendBytes([62, 32], context: context) // "> " as bytes
+        // Send prompt through word wrap system for consistent column tracking
+        sendText("> ", context: context)
     }
     
     private func sendLine(_ text: String, context: ChannelHandlerContext) {
