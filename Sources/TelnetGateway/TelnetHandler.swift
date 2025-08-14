@@ -235,8 +235,9 @@ public class TelnetHandler: ChannelInboundHandler {
                         print("🔍 DEBUG: Cleaned response: '\(cleanedResponse)'")
                         
                         if !cleanedResponse.isEmpty {
-                            // Add space before chunk if it's not the first one
-                            let responseWithSpace = isFirstChunk ? cleanedResponse : " \(cleanedResponse)"
+                            // Add space before chunk if it's not the first one and doesn't start with punctuation
+                            let shouldAddSpace = !isFirstChunk && !cleanedResponse.hasPrefix("!") && !cleanedResponse.hasPrefix("?") && !cleanedResponse.hasPrefix(".") && !cleanedResponse.hasPrefix(",") && !cleanedResponse.hasPrefix("'") && !cleanedResponse.hasPrefix(";") && !cleanedResponse.hasPrefix(":")
+                            let responseWithSpace = shouldAddSpace ? " \(cleanedResponse)" : cleanedResponse
                             isFirstChunk = false
                             
                             print("🔍 DEBUG: Response with space: '\(responseWithSpace)'")
