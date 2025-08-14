@@ -270,29 +270,44 @@ public class PETSCIIRenderer {
         // Debug: print the case-reversed text
         print("🔤 Case reversed: '\(processedText)'")
         
-        // Word-aware rendering with proper word wrap
+        // Word-aware rendering with proper word wrap - ONE WORD AT A TIME
         let words = processedText.components(separatedBy: " ")
         var currentLineLength = 0
         
+        print("📝 Processing \(words.count) words, width=\(width)")
+        
         for (index, word) in words.enumerated() {
+            print("🔍 WORD [\(index)]: '\(word)' (length=\(word.count), currentLine=\(currentLineLength))")
+            
             // Check if this word would exceed the line width (including space after word)
             let spaceNeeded = index < words.count - 1 ? 1 : 0 // Space after word if not last
-            if currentLineLength + word.count + spaceNeeded > width && currentLineLength > 0 {
-                // Wrap to new line before this word
+            let totalNeeded = currentLineLength + word.count + spaceNeeded
+            let wrapBoundary = width - 1 // Wrap at column 39 instead of 40
+            
+            print("   📏 Space needed: \(spaceNeeded), Total needed: \(totalNeeded), Wrap boundary: \(wrapBoundary)")
+            
+            if totalNeeded > wrapBoundary && currentLineLength > 0 {
+                print("   ⬇️  WRAPPING: Adding CR+LF before word")
                 result.append(13) // CR
                 result.append(10) // LF
                 currentLineLength = 0
             }
             
             // Add the word
+            print("   📤 Adding word: '\(word)'")
             for char in word {
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {
                         result.append(byte)
                         currentLineLength += 1
+                        // Debug: Check for punctuation and special characters
+                        if char.isPunctuation || char.isNumber || !char.isLetter {
+                            print("   🔤 Special char: '\(char)' -> byte \(byte)")
+                        }
                     }
                 } else {
                     // Unknown character - use space
+                    print("   ⚠️  Unknown char: '\(char)' -> using space (32)")
                     result.append(32)
                     currentLineLength += 1
                 }
@@ -300,11 +315,15 @@ public class PETSCIIRenderer {
             
             // Add space after word (except for the last word)
             if index < words.count - 1 {
+                print("   📤 Adding space after word")
                 result.append(32) // Space byte
                 currentLineLength += 1
             }
+            
+            print("   ✅ After word: currentLineLength=\(currentLineLength)")
         }
         
+        print("🎯 Final result: \(result.count) bytes")
         return result
     }
     

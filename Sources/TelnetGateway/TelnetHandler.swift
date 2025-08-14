@@ -81,9 +81,9 @@ public class TelnetHandler: ChannelInboundHandler {
             if !session.currentLine.isEmpty {
                 let input = session.currentLine
                 session.currentLine = ""
-                // Add blank line after user input is complete
-                print("🔍 DEBUG: Adding blank line after user input")
-                sendBytes([13, 10], context: context) // CR + LF for blank line after user input
+                        // TEMPORARILY COMMENTED OUT: Add blank line after user input is complete
+        // print("🔍 DEBUG: Adding blank line after user input")
+        // sendBytes([13, 10], context: context) // CR + LF for blank line after user input
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
@@ -237,9 +237,10 @@ public class TelnetHandler: ChannelInboundHandler {
                         print("🔍 DEBUG: Cleaned response: '\(cleanedResponse)'")
                         
                         if !cleanedResponse.isEmpty {
-                            // Add space before chunk if it's not the first one and doesn't start with punctuation
-                            let shouldAddSpace = !isFirstChunk && !cleanedResponse.hasPrefix("!") && !cleanedResponse.hasPrefix("?") && !cleanedResponse.hasPrefix(".") && !cleanedResponse.hasPrefix(",") && !cleanedResponse.hasPrefix("'") && !cleanedResponse.hasPrefix(";") && !cleanedResponse.hasPrefix(":")
-                            let responseWithSpace = shouldAddSpace ? " \(cleanedResponse)" : cleanedResponse
+                                                    // Add space before chunk if it's not the first one and doesn't start with punctuation
+                        let shouldAddSpace = !isFirstChunk && !cleanedResponse.hasPrefix("!") && !cleanedResponse.hasPrefix("?") && !cleanedResponse.hasPrefix(".") && !cleanedResponse.hasPrefix(",") && !cleanedResponse.hasPrefix("'") && !cleanedResponse.hasPrefix(";") && !cleanedResponse.hasPrefix(":")
+                        let responseWithSpace = shouldAddSpace ? " \(cleanedResponse)" : cleanedResponse
+                        print("🔍 DEBUG: Space check - isFirstChunk: \(isFirstChunk), shouldAddSpace: \(shouldAddSpace), response: '\(cleanedResponse)'")
                             isFirstChunk = false
                             
                             // Accumulate the full response
@@ -258,9 +259,9 @@ public class TelnetHandler: ChannelInboundHandler {
                 sendBytes(rendered, context: context)
             }
             
-            // Add proper line breaks after AI response - blank line before prompt
-            print("🔍 DEBUG: Adding blank line after AI response")
-            sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
+            // TEMPORARILY COMMENTED OUT: Add proper line breaks after AI response - blank line before prompt
+            // print("🔍 DEBUG: Adding blank line after AI response")
+            // sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
             sendPrompt(context: context)
             
         } catch {
