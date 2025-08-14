@@ -261,38 +261,37 @@ public class PETSCIIRenderer {
         // Debug: print the case-reversed text
         print("🔤 Case reversed: '\(processedText)'")
         
-        // Simple character-by-character rendering with word wrap
+        // Word-aware rendering with proper word wrap
+        let words = processedText.components(separatedBy: " ")
         var currentLineLength = 0
         
-        for char in processedText {
-            print("🔍 DEBUG: Processing char: '\(char)' (ASCII: \(char.asciiValue ?? 0))")
-            
-            // Check if we need to wrap before adding this character
-            if currentLineLength >= width {
+        for (index, word) in words.enumerated() {
+            // Check if this word would exceed the line width
+            if currentLineLength + word.count > width && currentLineLength > 0 {
+                // Wrap to new line before this word
                 result.append(13) // CR
                 result.append(10) // LF
                 currentLineLength = 0
             }
             
-            if char == " " {
-                print("🔍 DEBUG: Adding space byte (32)")
-                // Handle space character - always render it
-                result.append(32) // Space byte
-                currentLineLength += 1
-            } else {
-                // Convert character to PETSCII
+            // Add the word
+            for char in word {
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {
-                        print("🔍 DEBUG: Adding PETSCII char: '\(petsciiChar)' (byte: \(byte))")
                         result.append(byte)
                         currentLineLength += 1
                     }
                 } else {
                     // Unknown character - use space
-                    print("🔍 DEBUG: Unknown char '\(char)', using space")
                     result.append(32)
                     currentLineLength += 1
                 }
+            }
+            
+            // Add space after word (except for the last word)
+            if index < words.count - 1 {
+                result.append(32) // Space byte
+                currentLineLength += 1
             }
         }
         
