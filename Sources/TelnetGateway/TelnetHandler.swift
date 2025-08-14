@@ -137,8 +137,8 @@ public class TelnetHandler: ChannelInboundHandler {
             return
         }
         
-        // Add spacing for readability
-        sendLine("", context: context) // Empty line before AI response
+        // Add spacing for readability - blank line after user input
+        sendLine("", context: context) // Empty line after user input
         
         // Check for natural language commands
         if let command = parseNaturalLanguageCommand(trimmed) {
@@ -266,8 +266,8 @@ public class TelnetHandler: ChannelInboundHandler {
                 }
             }
             
-            // Add proper line breaks after AI response
-            sendBytes([13, 10], context: context) // CR + LF
+            // Add proper line breaks after AI response - blank line before prompt
+            sendLine("", context: context) // Empty line after AI response
             sendPrompt(context: context)
             
         } catch {
