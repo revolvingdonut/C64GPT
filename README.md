@@ -64,16 +64,16 @@ Everything runs locally on your Mac - no internet required after initial model d
    ollama pull gemma2:2b
    ```
 
-4. **Run the daemon:**
+4. **Launch the unified management interface:**
    ```bash
-   # Using the management script (recommended)
-   ./start_server.sh
+   # Using the unified launcher (recommended)
+   ./launch_c64gpt_unified.sh
    
    # Or manually
-   swift run PetsponderDaemon
+   swift run PetsponderApp
    
-   # Stop the server
-   ./stop_server.sh
+   # Stop the interface
+   ./stop_c64gpt_unified.sh
    ```
 
 5. **Connect from your C64/emulator:**
@@ -92,9 +92,10 @@ Everything runs locally on your Mac - no internet required after initial model d
 
 ### From the SwiftUI App
 
-- **Dashboard**: Monitor server status, active sessions, and performance metrics
-- **Models**: List, pull, remove, and set default models
-- **Settings**: Configure ports, pacing speeds, emoji mappings
+The unified management interface provides:
+- **Server Tab**: Start/stop the telnet server, view status, copy connection commands
+- **Models Tab**: Download models from Ollama, remove models, set default model, configure system prompts
+- **Real-time progress**: See download progress and server status updates
 
 ## 🎨 Features
 
@@ -118,7 +119,7 @@ Everything runs locally on your Mac - no internet required after initial model d
 ```
 C64GPT/
 ├── Sources/
-│   ├── PetsponderApp/        # SwiftUI app target
+│   ├── PetsponderApp/        # SwiftUI unified management app
 │   ├── PetsponderDaemon/     # SwiftNIO daemon target
 │   ├── TelnetGateway/        # RFC854 + renderer + pacing
 │   └── OllamaClient/         # REST + SSE, model operations
@@ -126,14 +127,16 @@ C64GPT/
 │   ├── TelnetGatewayTests/
 │   └── OllamaClientTests/
 ├── Config/
-│   └── config.toml
+│   └── config.json          # Configuration file
+├── launch_c64gpt_unified.sh # Unified launcher script
+├── stop_c64gpt_unified.sh   # Stop script
 └── docs/
     └── C64GPT — Design Doc.md
 ```
 
 ## 🔧 Configuration
 
-Edit `Config/config.toml` to customize:
+Edit `Config/config.json` to customize:
 
 - Network ports and addresses
 - Default model and engine settings
@@ -155,9 +158,11 @@ swift test
 
 ### Running the App
 ```bash
-# In Xcode: Open the project and run PetsponderApp scheme
-# Or from command line:
-open Package.swift
+# Launch the unified interface
+./launch_c64gpt_unified.sh
+
+# Or manually
+swift run PetsponderApp
 ```
 
 ## 📊 Performance Targets

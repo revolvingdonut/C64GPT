@@ -2,7 +2,17 @@
 
 ## Issues Fixed
 
-### 1. Server Process Management
+### 1. Model Downloader Streaming Response
+**Problem**: The model downloader was failing with "data couldn't be read because it isn't in the correct format" error when downloading models from Ollama.
+
+**Fixes**:
+- Fixed `pullModel` method to handle streaming responses from Ollama's `/api/pull` endpoint
+- Added `PullChunk` data structure for proper streaming response parsing
+- Added progress tracking with real-time download updates
+- Enhanced error handling for streaming responses
+- Updated UI to show download progress to users
+
+### 2. Server Process Management
 **Problem**: The `ServerManager` wasn't properly tracking and cleaning up server processes, leading to issues when stopping the server.
 
 **Fixes**:
@@ -11,7 +21,7 @@
 - Added process termination handlers for graceful shutdown
 - Improved error handling and status reporting
 
-### 2. Process Cleanup
+### 3. Process Cleanup
 **Problem**: Server processes weren't being properly killed when the "Stop Server" button was clicked.
 
 **Fixes**:
@@ -24,7 +34,7 @@
 - Added status checking timer to monitor server health
 - Implemented proper deallocation cleanup in `deinit`
 
-### 3. Configuration Management
+### 4. Configuration Management
 **Problem**: Configuration changes required manual server restart without clear indication.
 
 **Fixes**:
@@ -35,7 +45,7 @@
   - Notification banner with "Restart Now" button
 - Added automatic restart functionality in LLM management tab
 
-### 4. Signal Handling
+### 5. Signal Handling
 **Problem**: The daemon didn't handle all termination signals properly.
 
 **Fixes**:
@@ -43,7 +53,7 @@
 - Improved graceful shutdown logging
 - Enhanced TelnetServer shutdown with proper logging
 
-### 5. Status Monitoring
+### 6. Status Monitoring
 **Problem**: No continuous monitoring of server status.
 
 **Fixes**:

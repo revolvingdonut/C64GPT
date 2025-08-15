@@ -63,7 +63,8 @@ This will:
 - Set default model
 - Configure system prompts
 - Real-time connection status to Ollama
-- Download progress tracking
+- Download progress tracking with real-time updates
+- Fixed streaming response handling for reliable model downloads
 
 ### Unified Status
 - Overall system readiness indicator

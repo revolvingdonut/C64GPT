@@ -1,15 +1,15 @@
-# C64GPT Server Management Scripts
+# C64GPT Unified Management Scripts
 
-This directory contains enhanced server management scripts for C64GPT, designed to work with the improved codebase.
+This directory contains the unified management scripts for C64GPT, designed to work with the unified management interface.
 
 ## Scripts Overview
 
-### 🚀 `start_server.sh` - Enhanced Server Startup
+### 🚀 `launch_c64gpt_unified.sh` - Unified Interface Launcher
 **Features:**
 - ✅ Configuration validation using `jq`
-- ✅ Dependency checking (Swift, netcat, jq)
+- ✅ Dependency checking (Swift, Xcode command line tools)
 - ✅ Port availability testing
-- ✅ Graceful shutdown of existing servers
+- ✅ Graceful shutdown of existing processes
 - ✅ PID file management
 - ✅ Comprehensive error handling
 - ✅ Colored output for better UX
@@ -17,18 +17,25 @@ This directory contains enhanced server management scripts for C64GPT, designed 
 
 **Usage:**
 ```bash
-./start_server.sh
+./launch_c64gpt_unified.sh
 ```
+
+**Options:**
+- `-h, --help`: Show help message
+- `-f, --force`: Force launch even if already running
+- `-b, --build`: Build only (don't launch)
+- `-v, --validate`: Validate configuration only
 
 **What it does:**
 1. Validates configuration file (`Config/config.json`)
 2. Checks for required dependencies
 3. Tests port availability
-4. Stops any existing server gracefully
-5. Starts the server with proper logging
-6. Provides connection information
+4. Stops any existing processes gracefully
+5. Builds the unified management interface
+6. Launches the interface with proper logging
+7. Provides connection information
 
-### 🛑 `stop_server.sh` - Enhanced Server Shutdown
+### 🛑 `stop_c64gpt_unified.sh` - Unified Interface Shutdown
 **Features:**
 - ✅ Graceful shutdown with timeout
 - ✅ Force kill option for stuck processes
@@ -41,50 +48,19 @@ This directory contains enhanced server management scripts for C64GPT, designed 
 **Usage:**
 ```bash
 # Graceful shutdown (default)
-./stop_server.sh
+./stop_c64gpt_unified.sh
 
 # Force kill
-./stop_server.sh --force
+./stop_c64gpt_unified.sh --force
 
 # Show status only
-./stop_server.sh --status
+./stop_c64gpt_unified.sh --status
 
 # Clean up orphaned processes
-./stop_server.sh --cleanup
+./stop_c64gpt_unified.sh --cleanup
 
 # Show help
-./stop_server.sh --help
-```
-
-### 📊 `status_server.sh` - Server Status Monitoring
-**Features:**
-- ✅ Real-time server status
-- ✅ Configuration display
-- ✅ Port status checking
-- ✅ System resource monitoring
-- ✅ Recent log display
-- ✅ Connection information
-- ✅ Modular output options
-
-**Usage:**
-```bash
-# Full status (default)
-./status_server.sh
-
-# Configuration only
-./status_server.sh --config
-
-# Recent logs only
-./status_server.sh --logs
-
-# Port status only
-./status_server.sh --port
-
-# System resources only
-./status_server.sh --resources
-
-# Show help
-./status_server.sh --help
+./stop_c64gpt_unified.sh --help
 ```
 
 ## Dependencies
@@ -113,8 +89,8 @@ The scripts integrate with the enhanced configuration system:
 
 The scripts manage these files:
 
-- `c64gpt.pid` - Process ID file for server tracking
-- `c64gpt.log` - Server log file
+- `c64gpt_unified.pid` - Process ID file for interface tracking
+- `c64gpt_unified.log` - Interface log file
 - `Config/config.json` - Configuration file
 
 ## Error Handling
@@ -123,7 +99,7 @@ The scripts manage these files:
 - Invalid configuration → Exit with error
 - Missing dependencies → Exit with error
 - Port conflicts → Warning with suggestion
-- Server startup failure → Detailed error reporting
+- Interface startup failure → Detailed error reporting
 
 **Shutdown Errors:**
 - Graceful shutdown timeout → Automatic force kill
@@ -133,7 +109,7 @@ The scripts manage these files:
 ## Monitoring Features
 
 **Status Monitoring:**
-- Server uptime tracking
+- Interface uptime tracking
 - Memory usage monitoring
 - CPU usage tracking
 - Port availability checking
@@ -156,21 +132,21 @@ The scripts manage these files:
 
 **Common Issues:**
 
-1. **Server won't start:**
+1. **Interface won't start:**
    ```bash
-   ./status_server.sh --logs  # Check recent logs
-   ./stop_server.sh --cleanup # Clean up orphaned processes
+   ./stop_c64gpt_unified.sh --status  # Check status
+   ./stop_c64gpt_unified.sh --cleanup # Clean up orphaned processes
    ```
 
 2. **Port already in use:**
    ```bash
-   ./stop_server.sh --force   # Force kill existing server
-   ./start_server.sh          # Restart server
+   ./stop_c64gpt_unified.sh --force   # Force kill existing processes
+   ./launch_c64gpt_unified.sh         # Restart interface
    ```
 
 3. **Configuration issues:**
    ```bash
-   ./status_server.sh --config # Check current configuration
+   ./launch_c64gpt_unified.sh --validate # Validate configuration
    ```
 
 4. **Permission issues:**
@@ -178,43 +154,53 @@ The scripts manage these files:
    chmod +x *.sh              # Make scripts executable
    ```
 
-## Integration with Code Improvements
+## Integration with Unified Management Interface
 
-These scripts work seamlessly with the code improvements:
+These scripts work seamlessly with the unified management interface:
 
 - **Configuration Validation**: Uses the new validation system
 - **Error Handling**: Leverages improved error reporting
 - **Resource Management**: Works with enhanced memory management
 - **Logging**: Integrates with improved logging system
-- **Performance**: Supports optimized server startup
+- **Performance**: Supports optimized interface startup
 
 ## Quick Start
 
 ```bash
-# Start the server
-./start_server.sh
+# Launch the unified interface
+./launch_c64gpt_unified.sh
 
 # Check status
-./status_server.sh
+./stop_c64gpt_unified.sh --status
 
-# Stop the server
-./stop_server.sh
+# Stop the interface
+./stop_c64gpt_unified.sh
 ```
 
 ## Advanced Usage
 
 ```bash
 # Monitor logs in real-time
-tail -f c64gpt.log
-
-# Check specific configuration
-./status_server.sh --config
+tail -f c64gpt_unified.log
 
 # Force restart
-./stop_server.sh --force && ./start_server.sh
+./stop_c64gpt_unified.sh --force && ./launch_c64gpt_unified.sh
 
 # Clean up and restart
-./stop_server.sh --cleanup && ./start_server.sh
+./stop_c64gpt_unified.sh --cleanup && ./launch_c64gpt_unified.sh
+
+# Build only
+./launch_c64gpt_unified.sh --build
 ```
 
-The enhanced scripts provide a robust, user-friendly way to manage the C64GPT server with comprehensive error handling, monitoring, and integration with the improved codebase.
+## Unified Management Interface Features
+
+The unified interface provides:
+
+- **Server Management**: Start/stop the telnet server, view status, copy connection commands
+- **LLM Model Management**: Download models from Ollama, remove models, set default model, configure system prompts
+- **Real-time Progress**: See download progress and server status updates
+- **Configuration Management**: Change settings with automatic restart notifications
+- **Status Monitoring**: Continuous monitoring of server and model status
+
+The enhanced scripts provide a robust, user-friendly way to manage the C64GPT unified interface with comprehensive error handling, monitoring, and integration with the improved codebase.
