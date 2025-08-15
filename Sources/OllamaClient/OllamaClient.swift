@@ -33,16 +33,73 @@ public class OllamaClient {
         let body = PullRequest(name: name)
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await session.data(for: request)
+        let (result, response) = try await session.bytes(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
             throw OllamaError.requestFailed
         }
         
-        let pullResponse = try JSONDecoder().decode(PullResponse.self, from: data)
-        if let error = pullResponse.error {
-            throw OllamaError.modelPullFailed(error)
+        // Process streaming response
+        for try await line in result.lines {
+            if line.isEmpty { continue }
+            
+            let data = line.data(using: .utf8)!
+            let pullChunk = try JSONDecoder().decode(PullChunk.self, from: data)
+            
+            // Check for errors in the stream
+            if let error = pullChunk.error {
+                throw OllamaError.modelPullFailed(error)
+            }
+            
+            // If we get a "success" status, the pull completed successfully
+            if pullChunk.status == "success" {
+                return
+            }
+        }
+    }
+    
+    /// Pulls a model from Ollama with progress updates
+    public func pullModel(name: String, progress: @escaping (String) -> Void) async throws {
+        let url = URL(string: "\(baseURL)/api/pull")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = PullRequest(name: name)
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        let (result, response) = try await session.bytes(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw OllamaError.requestFailed
+        }
+        
+        // Process streaming response
+        for try await line in result.lines {
+            if line.isEmpty { continue }
+            
+            let data = line.data(using: .utf8)!
+            let pullChunk = try JSONDecoder().decode(PullChunk.self, from: data)
+            
+            // Check for errors in the stream
+            if let error = pullChunk.error {
+                throw OllamaError.modelPullFailed(error)
+            }
+            
+            // Update progress
+            if let total = pullChunk.total, let completed = pullChunk.completed {
+                let percentage = Int((Double(completed) / Double(total)) * 100)
+                progress("Downloading \(name): \(percentage)% (\(completed)/\(total) bytes)")
+            } else if pullChunk.status == "downloading" {
+                progress("Downloading \(name)...")
+            } else if pullChunk.status == "verifying" {
+                progress("Verifying \(name)...")
+            } else if pullChunk.status == "success" {
+                progress("Download completed!")
+                return
+            }
         }
     }
     
@@ -244,6 +301,14 @@ public struct PullRequest: Codable {
 public struct PullResponse: Codable {
     public let status: String
     public let error: String?
+}
+
+public struct PullChunk: Codable {
+    public let status: String
+    public let error: String?
+    public let digest: String?
+    public let total: Int64?
+    public let completed: Int64?
 }
 
 public struct OllamaTagsResponse: Codable {

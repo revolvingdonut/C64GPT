@@ -38,6 +38,11 @@ struct PetsponderDaemon {
             exit(0)
         }
         
+        signal(SIGTERM) { _ in
+            logInfo("🛑 Received SIGTERM, shutting down server gracefully...")
+            exit(0)
+        }
+        
         do {
             // Create and start the Telnet server
             let server = try TelnetServer(config: serverConfig)

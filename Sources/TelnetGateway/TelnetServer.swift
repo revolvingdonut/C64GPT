@@ -37,7 +37,9 @@ public class TelnetServer {
     }
     
     public func stop() throws {
+        logInfo("🛑 Stopping TelnetServer...")
         try group.syncShutdownGracefully()
+        logInfo("✅ TelnetServer stopped")
     }
     
     deinit {

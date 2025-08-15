@@ -22,11 +22,11 @@ struct UnifiedManagementView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("C64GPT Management")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                             
                             Text(selectedTab == 0 ? "Server Management" : "LLM Model Management")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white.opacity(0.7))
                         }
                         
                         Spacer()
@@ -68,7 +68,7 @@ struct UnifiedManagementView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.15))
+                            .fill(Color.gray.opacity(0.2))
                     )
                 }
                 .padding(.horizontal, 24)
@@ -76,8 +76,8 @@ struct UnifiedManagementView: View {
                 .padding(.bottom, 16)
                 .background(
                     Rectangle()
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.05), radius: 1, y: 1)
+                        .fill(Color.gray.opacity(0.15))
+                        .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
                 )
                 
                 // Tab Content
@@ -86,6 +86,7 @@ struct UnifiedManagementView: View {
                 } else {
                     LLMManagementTab(
                         viewModel: llmViewModel,
+                        serverManager: serverManager,
                         showingModelDownload: $showingModelDownload,
                         showingSystemPromptEditor: $showingSystemPromptEditor,
                         modelToRemove: $modelToRemove,
@@ -93,7 +94,7 @@ struct UnifiedManagementView: View {
                     )
                 }
             }
-            .background(Color.gray.opacity(0.08))
+            .background(Color.black.opacity(0.1))
         .frame(minWidth: 700, minHeight: 800)
         .onAppear {
             Task {
@@ -158,18 +159,18 @@ struct TabButton: View {
     
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(isSelected ? .white : Color(.darkGray))
+                                    Text(title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(isSelected ? .white : .white.opacity(0.6))
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? Color.gray : Color.white)
+                        .fill(isSelected ? Color.gray : Color.gray.opacity(0.3))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? Color.gray : Color.gray.opacity(0.4), lineWidth: 1)
+                        .stroke(isSelected ? Color.gray : Color.gray.opacity(0.5), lineWidth: 1)
                 )
         }
         .buttonStyle(PlainButtonStyle())
@@ -341,6 +342,7 @@ struct ServerManagementTab: View {
 
 struct LLMManagementTab: View {
     @ObservedObject var viewModel: LLMManagementViewModel
+    @ObservedObject var serverManager: ServerManager
     @Binding var showingModelDownload: Bool
     @Binding var showingSystemPromptEditor: Bool
     @Binding var modelToRemove: String?
@@ -361,12 +363,12 @@ struct LLMManagementTab: View {
                         Text("Refresh")
                             .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundColor(Color(.darkGray))
+                    .foregroundColor(.white.opacity(0.8))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.15))
+                            .fill(Color.gray.opacity(0.2))
                     )
                 }
                 .disabled(viewModel.isLoading)
@@ -399,14 +401,47 @@ struct LLMManagementTab: View {
                         Text("System Prompt")
                             .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundColor(Color(.darkGray))
+                    .foregroundColor(.white.opacity(0.8))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.15))
+                            .fill(Color.gray.opacity(0.2))
                     )
                 }
+                
+                Button(action: {
+                    if serverManager.isRunning {
+                        serverManager.stopServer()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            serverManager.startServer()
+                            viewModel.needsServerRestart = false
+                        }
+                    } else {
+                        serverManager.startServer()
+                        viewModel.needsServerRestart = false
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise.circle")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Restart Server")
+                            .font(.system(size: 14, weight: .medium))
+                        if viewModel.needsServerRestart {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(viewModel.needsServerRestart ? Color.red : Color.orange)
+                    )
+                }
+                .disabled(serverManager.isStarting)
                 
                 Spacer()
             }
@@ -422,23 +457,78 @@ struct LLMManagementTab: View {
                             .scaleEffect(0.8)
                         Text("Downloading \(viewModel.downloadingModel)...")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(.darkGray))
+                            .foregroundColor(.white)
                     }
                     
                     if !viewModel.downloadProgress.isEmpty {
                         Text(viewModel.downloadProgress)
                             .font(.system(size: 12))
-                            .foregroundColor(Color(.darkGray))
+                            .foregroundColor(.white.opacity(0.8))
                     }
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.12))
+                        .fill(Color.gray.opacity(0.2))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                                .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
+            }
+            
+            // Restart Required Notification
+            if viewModel.needsServerRestart {
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.orange)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Server Restart Required")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Text("Configuration changes have been made. Restart the server to apply them.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Restart Now") {
+                        if serverManager.isRunning {
+                            serverManager.stopServer()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                serverManager.startServer()
+                                viewModel.needsServerRestart = false
+                            }
+                        } else {
+                            serverManager.startServer()
+                            viewModel.needsServerRestart = false
+                        }
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.orange)
+                    )
+                    .disabled(serverManager.isStarting)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
                         )
                 )
                 .padding(.horizontal, 24)
@@ -450,7 +540,7 @@ struct LLMManagementTab: View {
                 HStack {
                     Text("Installed Models")
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color(.darkGray))
+                        .foregroundColor(.white)
                     
                     Spacer()
                     
@@ -459,9 +549,9 @@ struct LLMManagementTab: View {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 12))
                                 .foregroundColor(.yellow)
-                            Text("Default: \(viewModel.defaultModel)")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color(.darkGray))
+                                                    Text("Default: \(viewModel.defaultModel)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
@@ -479,7 +569,7 @@ struct LLMManagementTab: View {
                             .scaleEffect(1.2)
                         Text("Loading models...")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(.darkGray))
+                            .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.top, 40)
@@ -492,11 +582,11 @@ struct LLMManagementTab: View {
                         VStack(spacing: 8) {
                             Text("No models installed")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(.darkGray))
+                                .foregroundColor(.white)
                             
                             Text("Download a model to get started with AI conversations")
                                 .font(.system(size: 14))
-                                .foregroundColor(Color(.darkGray))
+                                .foregroundColor(.white.opacity(0.7))
                                 .multilineTextAlignment(.center)
                         }
                         
@@ -573,6 +663,7 @@ struct ModernModelRowView: View {
                 HStack {
                     Text(model.name)
                         .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                         .lineLimit(1)
                     
                     if isDefault {
@@ -591,11 +682,11 @@ struct ModernModelRowView: View {
                 HStack(spacing: 12) {
                     Label(formatFileSize(model.size), systemImage: "externaldrive")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                     
                     Label(formatDate(model.modifiedAt), systemImage: "calendar")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
             
@@ -638,8 +729,8 @@ struct ModernModelRowView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                .fill(Color.gray.opacity(0.15))
+                .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
         )
     }
     
@@ -685,18 +776,18 @@ struct ModernModelDownloadView: View {
             VStack(spacing: 8) {
                 Text("Download Model")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Text("Choose a model to download from Ollama")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.7))
             }
             
             // Popular Models
             VStack(alignment: .leading, spacing: 16) {
                 Text("Popular Models")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
@@ -713,14 +804,14 @@ struct ModernModelDownloadView: View {
                                 
                                 Text(model)
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(modelName == model ? .white : .primary)
+                                    .foregroundColor(modelName == model ? .white : .white.opacity(0.8))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(modelName == model ? Color.blue : Color.gray.opacity(0.1))
+                                    .fill(modelName == model ? Color.blue : Color.gray.opacity(0.2))
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -732,7 +823,7 @@ struct ModernModelDownloadView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Or enter custom model name:")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 TextField("e.g., llama3.2:8b", text: $modelName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -745,7 +836,7 @@ struct ModernModelDownloadView: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.7))
                 
                 Button("Download") {
                     if !modelName.isEmpty {
@@ -766,7 +857,7 @@ struct ModernModelDownloadView: View {
         }
         .padding(32)
         .frame(width: 500, height: 400)
-        .background(Color.white)
+        .background(Color.gray.opacity(0.1))
     }
 }
 
@@ -784,11 +875,11 @@ struct SystemPromptEditorView: View {
             VStack(spacing: 8) {
                 Text("System Prompt Editor")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Text("Customize how the AI assistant behaves")
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.7))
             }
             
             // Editor
@@ -796,7 +887,7 @@ struct SystemPromptEditorView: View {
                 HStack {
                     Text("System Prompt")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     Spacer()
                     
@@ -809,14 +900,15 @@ struct SystemPromptEditorView: View {
                 
                 TextEditor(text: $editedPrompt)
                     .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(.white)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.1))
+                            .fill(Color.gray.opacity(0.2))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.gray.opacity(0.4), lineWidth: 1)
                     )
                     .frame(minHeight: 200)
             }
@@ -825,18 +917,18 @@ struct SystemPromptEditorView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Tips:")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("• Keep it concise and clear")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                     Text("• Define the AI's personality and behavior")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                     Text("• Avoid markdown or special formatting")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
             .padding(.horizontal, 4)
@@ -847,7 +939,7 @@ struct SystemPromptEditorView: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.7))
                 
                 Button("Save Changes") {
                     onSave(editedPrompt)
@@ -865,7 +957,7 @@ struct SystemPromptEditorView: View {
         }
         .padding(32)
         .frame(width: 600, height: 500)
-        .background(Color.white)
+        .background(Color.gray.opacity(0.1))
         .onAppear {
             editedPrompt = currentPrompt
         }
@@ -891,6 +983,7 @@ class LLMManagementViewModel: ObservableObject {
     @Published var alertTitle = ""
     @Published var downloadingModel = ""
     @Published var downloadProgress = ""
+    @Published var needsServerRestart = false
     
     private let ollamaClient = OllamaClient()
     private let config = Configuration.load()
@@ -919,7 +1012,11 @@ class LLMManagementViewModel: ObservableObject {
         downloadProgress = "Starting download..."
         
         do {
-            try await ollamaClient.pullModel(name: name)
+            try await ollamaClient.pullModel(name: name) { progress in
+                Task { @MainActor in
+                    self.downloadProgress = progress
+                }
+            }
             await refreshModels()
             showAlert("Success", "Model '\(name)' downloaded successfully!")
         } catch {
@@ -978,7 +1075,8 @@ class LLMManagementViewModel: ObservableObject {
             )
             
             try newConfig.save(to: "Config/config.json")
-            showAlert("Success", "Default model set to '\(name)'. Configuration saved. Restart the server for changes to take effect.")
+            needsServerRestart = true
+            showAlert("Success", "Default model set to '\(name)'. Configuration saved. Use the 'Restart Server' button to apply changes.")
         } catch {
             showAlert("Configuration Error", "Failed to save configuration: \(error.localizedDescription)")
         }
@@ -1012,7 +1110,8 @@ class LLMManagementViewModel: ObservableObject {
             )
             
             try newConfig.save(to: "Config/config.json")
-            showAlert("Success", "System prompt updated successfully. Restart the server for changes to take effect.")
+            needsServerRestart = true
+            showAlert("Success", "System prompt updated successfully. Use the 'Restart Server' button to apply changes.")
         } catch {
             showAlert("Configuration Error", "Failed to save configuration: \(error.localizedDescription)")
         }
@@ -1035,10 +1134,15 @@ class ServerManager: ObservableObject {
     @Published var statusMessage = ""
     
     private var serverProcess: Process?
+    private var serverPID: Int32?
+    private var statusCheckTimer: Timer?
     
     func startServer() {
         isStarting = true
         statusMessage = "Starting server..."
+        
+        // Kill any existing server processes first
+        killExistingServerProcesses()
         
         // Launch the PetsponderDaemon process
         let process = Process()
@@ -1046,64 +1150,195 @@ class ServerManager: ObservableObject {
         process.arguments = ["run", "PetsponderDaemon"]
         process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         
+        // Set up pipe for output
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        
+        // Handle process termination
+        process.terminationHandler = { [weak self] process in
+            DispatchQueue.main.async {
+                self?.handleServerTermination(process)
+            }
+        }
+        
         do {
             try process.run()
             self.serverProcess = process
+            self.serverPID = process.processIdentifier
             
             // Check if process started successfully
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 if process.isRunning {
                     self.isRunning = true
                     self.isStarting = false
                     self.statusMessage = "Server started successfully!"
+                    self.startStatusChecking()
+                    
+                    // Clear status message after 3 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        if self.statusMessage == "Server started successfully!" {
+                            self.statusMessage = ""
+                        }
+                    }
                 } else {
                     self.isStarting = false
                     self.statusMessage = "Failed to start server"
-                }
-                
-                // Clear status message after 3 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    if self.statusMessage == "Server started successfully!" || self.statusMessage == "Failed to start server" {
-                        self.statusMessage = ""
-                    }
+                    self.serverProcess = nil
+                    self.serverPID = nil
                 }
             }
         } catch {
             isStarting = false
             statusMessage = "Error starting server: \(error.localizedDescription)"
+            serverProcess = nil
+            serverPID = nil
         }
     }
     
     func stopServer() {
         statusMessage = "Stopping server..."
         
+        // First try to stop the managed process
         if let process = serverProcess, process.isRunning {
             process.terminate()
             
             // Give it a moment to terminate gracefully
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if !process.isRunning {
-                    self.isRunning = false
-                    self.statusMessage = "Server stopped."
+                    self.handleServerStopped()
                 } else {
                     // Force kill if it didn't terminate gracefully
                     process.interrupt()
-                    self.isRunning = false
-                    self.statusMessage = "Server force stopped."
-                }
-                
-                self.serverProcess = nil
-                
-                // Clear status message after 3 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    if self.statusMessage == "Server stopped." || self.statusMessage == "Server force stopped." {
-                        self.statusMessage = ""
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if !process.isRunning {
+                            self.handleServerStopped()
+                        } else {
+                            // Final force kill
+                            process.terminate()
+                            self.handleServerStopped()
+                        }
                     }
                 }
             }
         } else {
+            // Try to kill by PID if we have it
+            if serverPID != nil {
+                killExistingServerProcesses()
+                handleServerStopped()
+            } else {
+                // Fallback: kill any server processes
+                killExistingServerProcesses()
+                handleServerStopped()
+            }
+        }
+    }
+    
+    private func handleServerTermination(_ process: Process) {
+        DispatchQueue.main.async {
+            self.isRunning = false
+            self.isStarting = false
+            self.serverProcess = nil
+            self.serverPID = nil
+            self.stopStatusChecking()
+            
+            if process.terminationStatus == 0 {
+                self.statusMessage = "Server stopped gracefully."
+            } else {
+                self.statusMessage = "Server stopped with exit code: \(process.terminationStatus)"
+            }
+            
+            // Clear status message after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                if self.statusMessage.contains("Server stopped") {
+                    self.statusMessage = ""
+                }
+            }
+        }
+    }
+    
+    private func handleServerStopped() {
+        DispatchQueue.main.async {
+            self.isRunning = false
+            self.isStarting = false
+            self.serverProcess = nil
+            self.serverPID = nil
+            self.stopStatusChecking()
+            self.statusMessage = "Server stopped."
+            
+            // Clear status message after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                if self.statusMessage == "Server stopped." {
+                    self.statusMessage = ""
+                }
+            }
+        }
+    }
+    
+    private func killExistingServerProcesses() {
+        // Kill any existing PetsponderDaemon processes
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        task.arguments = ["-f", "PetsponderDaemon"]
+        
+        do {
+            try task.run()
+            task.waitUntilExit()
+        } catch {
+            // Ignore errors - process might not exist
+        }
+        
+        // Also try to kill by PID if we have a PID file
+        let pidFile = FileManager.default.currentDirectoryPath + "/c64gpt_unified.pid"
+        if let pidData = try? Data(contentsOf: URL(fileURLWithPath: pidFile)),
+           let pidString = String(data: pidData, encoding: .utf8),
+           let pid = Int32(pidString) {
+            
+            let killTask = Process()
+            killTask.executableURL = URL(fileURLWithPath: "/bin/kill")
+            killTask.arguments = ["\(pid)"]
+            
+            do {
+                try killTask.run()
+                killTask.waitUntilExit()
+            } catch {
+                // Ignore errors
+            }
+            
+            // Remove PID file
+            try? FileManager.default.removeItem(atPath: pidFile)
+        }
+    }
+    
+    private func startStatusChecking() {
+        statusCheckTimer?.invalidate()
+        statusCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.checkServerStatus()
+        }
+    }
+    
+    private func stopStatusChecking() {
+        statusCheckTimer?.invalidate()
+        statusCheckTimer = nil
+    }
+    
+    private func checkServerStatus() {
+        guard let process = serverProcess else {
             isRunning = false
-            statusMessage = "Server was not running."
+            stopStatusChecking()
+            return
+        }
+        
+        if !process.isRunning {
+            handleServerTermination(process)
+            stopStatusChecking()
+        }
+    }
+    
+    deinit {
+        stopStatusChecking()
+        if let process = serverProcess, process.isRunning {
+            process.terminate()
         }
     }
 }
