@@ -24,6 +24,7 @@ public struct Configuration {
     public let ollamaBaseURL: String
     public let requestTimeout: TimeInterval
     public let resourceTimeout: TimeInterval
+    public let systemPrompt: String
     
     // MARK: - Logging Configuration
     public let logLevel: LogLevel
@@ -44,6 +45,7 @@ public struct Configuration {
         ollamaBaseURL: String = "http://localhost:11434",
         requestTimeout: TimeInterval = 30.0,
         resourceTimeout: TimeInterval = 300.0,
+        systemPrompt: String = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.",
         logLevel: LogLevel = .info,
         enableAuditLogging: Bool = true
     ) {
@@ -61,6 +63,7 @@ public struct Configuration {
         self.ollamaBaseURL = ollamaBaseURL
         self.requestTimeout = requestTimeout
         self.resourceTimeout = resourceTimeout
+        self.systemPrompt = systemPrompt
         self.logLevel = logLevel
         self.enableAuditLogging = enableAuditLogging
     }
@@ -122,6 +125,7 @@ public struct Configuration {
             ollamaBaseURL: ProcessInfo.processInfo.environment["C64GPT_OLLAMA_BASE_URL"] ?? "http://localhost:11434",
             requestTimeout: TimeInterval(ProcessInfo.processInfo.environment["C64GPT_REQUEST_TIMEOUT"] ?? "30.0") ?? 30.0,
             resourceTimeout: TimeInterval(ProcessInfo.processInfo.environment["C64GPT_RESOURCE_TIMEOUT"] ?? "300.0") ?? 300.0,
+            systemPrompt: ProcessInfo.processInfo.environment["C64GPT_SYSTEM_PROMPT"] ?? "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.",
             logLevel: LogLevel(rawValue: ProcessInfo.processInfo.environment["C64GPT_LOG_LEVEL"] ?? "info") ?? .info,
             enableAuditLogging: ProcessInfo.processInfo.environment["C64GPT_ENABLE_AUDIT_LOGGING"] != "false"
         )
@@ -145,6 +149,7 @@ public struct Configuration {
             ollamaBaseURL: json["ollamaBaseURL"] as? String ?? "http://localhost:11434",
             requestTimeout: json["requestTimeout"] as? TimeInterval ?? 30.0,
             resourceTimeout: json["resourceTimeout"] as? TimeInterval ?? 300.0,
+            systemPrompt: json["systemPrompt"] as? String ?? "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.",
             logLevel: LogLevel(rawValue: json["logLevel"] as? String ?? "info") ?? .info,
             enableAuditLogging: json["enableAuditLogging"] as? Bool ?? true
         )
@@ -186,6 +191,7 @@ public struct Configuration {
             ollamaBaseURL: config.ollamaBaseURL.isEmpty ? "http://localhost:11434" : config.ollamaBaseURL,
             requestTimeout: validRequestTimeout,
             resourceTimeout: validResourceTimeout,
+            systemPrompt: config.systemPrompt.isEmpty ? "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown." : config.systemPrompt,
             logLevel: config.logLevel,
             enableAuditLogging: config.enableAuditLogging
         )
@@ -209,6 +215,7 @@ public struct Configuration {
             "ollamaBaseURL": ollamaBaseURL,
             "requestTimeout": requestTimeout,
             "resourceTimeout": resourceTimeout,
+            "systemPrompt": systemPrompt,
             "logLevel": logLevel.rawValue,
             "enableAuditLogging": enableAuditLogging
         ]

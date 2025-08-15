@@ -291,11 +291,7 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func generateResponseFromAI(for input: String) async throws -> String {
-        let systemPrompt = """
-        You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.
-        """
-        
-        let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
+        let fullPrompt = "\(config.systemPrompt)\n\nUser: \(input)\nAI:"
         
         let stream = ollamaClient.generateStream(
             model: config.defaultModel,

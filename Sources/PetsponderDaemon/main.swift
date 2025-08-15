@@ -28,7 +28,8 @@ struct PetsponderDaemon {
             width: config.width,
             wrap: config.wrap,
             maxInputLength: config.maxInputLength,
-            defaultModel: config.defaultModel
+            defaultModel: config.defaultModel,
+            systemPrompt: config.systemPrompt
         )
         
         // Set up signal handling for graceful shutdown

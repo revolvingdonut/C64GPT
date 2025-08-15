@@ -56,6 +56,7 @@ public struct ServerConfig {
     public let wrap: Bool
     public let maxInputLength: Int
     public let defaultModel: String
+    public let systemPrompt: String
     
     public init(
         listenAddress: String = "0.0.0.0",
@@ -65,7 +66,8 @@ public struct ServerConfig {
         width: Int = 40,
         wrap: Bool = true,
         maxInputLength: Int = 1000,
-        defaultModel: String = "gemma2:2b"
+        defaultModel: String = "gemma2:2b",
+        systemPrompt: String = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown."
     ) {
         self.listenAddress = listenAddress
         self.telnetPort = telnetPort
@@ -75,6 +77,7 @@ public struct ServerConfig {
         self.wrap = wrap
         self.maxInputLength = maxInputLength
         self.defaultModel = defaultModel
+        self.systemPrompt = systemPrompt
     }
 }
 
