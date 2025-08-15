@@ -278,6 +278,10 @@ public class PETSCIIRenderer {
         print("🔤 Case reversed: '\(processedText)'")
         
         // Word-aware rendering with proper word wrap - ONE WORD AT A TIME
+        print("🔍 DEEP DIVE: Original text: '\(processedText)'")
+        print("🔍 DEEP DIVE: Text length: \(processedText.count)")
+        print("🔍 DEEP DIVE: Text characters: \(Array(processedText).map { "'\($0)'" }.joined(separator: " "))")
+        
         let words = processedText.components(separatedBy: " ")
         var currentLineLength = 0
         
@@ -286,6 +290,7 @@ public class PETSCIIRenderer {
         
         for (index, word) in words.enumerated() {
             print("🔍 WORD [\(index)]: '\(word)' (length=\(word.count), currentLine=\(currentLineLength))")
+            print("🔍 DEEP DIVE: Word [\(index)] characters: \(Array(word).map { "'\($0)' (ascii: \($0.asciiValue ?? 0))" }.joined(separator: " "))")
             
             // Check if this word would exceed the line width (including space after word)
             let spaceNeeded = index < words.count - 1 ? 1 : 0 // Space after word if not last
@@ -303,6 +308,10 @@ public class PETSCIIRenderer {
             
             // Add the word
             print("   📤 Adding word: '\(word)' (word.count=\(word.count))")
+            if word.isEmpty {
+                print("   ⚠️  WARNING: Empty word detected!")
+                continue
+            }
             for (charIndex, char) in word.enumerated() {
                 print("   🔤 Char [\(charIndex)]: '\(char)' (ascii: \(char.asciiValue ?? 0))")
                 if let petsciiChar = unicodeToPetscii[char] {

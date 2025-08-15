@@ -233,6 +233,8 @@ public class TelnetHandler: ChannelInboundHandler {
                             .trimmingCharacters(in: .whitespacesAndNewlines)
                             .replacingOccurrences(of: "\n", with: " ")
                             .replacingOccurrences(of: "  ", with: " ")
+                            // Fix multi-digit numbers by removing spaces between consecutive digits
+                            .replacingOccurrences(of: #"(\d)\s+(\d)"#, with: "$1$2", options: .regularExpression)
                         
                         print("🔍 DEBUG: Cleaned response: '\(cleanedResponse)'")
                         
