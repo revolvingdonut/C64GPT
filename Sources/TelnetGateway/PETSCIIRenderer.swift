@@ -249,14 +249,21 @@ public class PETSCIIRenderer {
         }
         
         // Reverse case for PETSCII effect, but preserve apostrophes and contractions
-        processedText = processedText.map { char in
+        print("🔤 Before case reversal: '\(processedText)'")
+        
+        // Use a more direct approach to avoid any string conversion issues
+        var reversedText = ""
+        for char in processedText {
             if char.isUppercase {
-                return char.lowercased().first!
+                reversedText.append(char.lowercased())
             } else if char.isLowercase {
-                return char.uppercased().first!
+                reversedText.append(char.uppercased())
+            } else {
+                reversedText.append(char)
             }
-            return char
-        }.map(String.init).joined()
+        }
+        processedText = reversedText
+        print("🔤 After case reversal: '\(processedText)'")
         
         // Fix common contractions that got broken by case reversal
         processedText = processedText
@@ -275,6 +282,7 @@ public class PETSCIIRenderer {
         var currentLineLength = 0
         
         print("📝 Processing \(words.count) words, width=\(width)")
+        print("📝 Words array: \(words)") // Debug: show all words including empty ones
         
         for (index, word) in words.enumerated() {
             print("🔍 WORD [\(index)]: '\(word)' (length=\(word.count), currentLine=\(currentLineLength))")
@@ -294,8 +302,9 @@ public class PETSCIIRenderer {
             }
             
             // Add the word
-            print("   📤 Adding word: '\(word)'")
-            for char in word {
+            print("   📤 Adding word: '\(word)' (word.count=\(word.count))")
+            for (charIndex, char) in word.enumerated() {
+                print("   🔤 Char [\(charIndex)]: '\(char)' (ascii: \(char.asciiValue ?? 0))")
                 if let petsciiChar = unicodeToPetscii[char] {
                     if let byte = petsciiChar.asciiValue {
                         result.append(byte)
