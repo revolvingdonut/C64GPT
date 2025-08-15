@@ -10,18 +10,27 @@ public class TelnetHandler: ChannelInboundHandler {
     private let config: ServerConfig
     private let renderer: PETSCIIRenderer
     private let ollamaClient: OllamaClient
-    private let pacingEngine: PacingEngine
     private var session: TelnetSession?
+    private var isProcessing = false
     
-    public init(config: ServerConfig, renderer: PETSCIIRenderer, ollamaClient: OllamaClient, pacingEngine: PacingEngine) {
+    // Connection tracking
+    private static var activeConnections = 0
+    private static let connectionLock = NSLock()
+    
+    public init(config: ServerConfig, renderer: PETSCIIRenderer, ollamaClient: OllamaClient) {
         self.config = config
         self.renderer = renderer
         self.ollamaClient = ollamaClient
-        self.pacingEngine = pacingEngine
     }
     
     public func channelActive(context: ChannelHandlerContext) {
-        print("🔌 New Telnet connection from \(context.remoteAddress?.description ?? "unknown")")
+        // Track active connections
+        Self.connectionLock.lock()
+        Self.activeConnections += 1
+        Self.connectionLock.unlock()
+        
+        logInfo("🔌 New Telnet connection from \(context.remoteAddress?.description ?? "unknown") (Total: \(Self.activeConnections))")
+        logAudit("Connection established from \(context.remoteAddress?.description ?? "unknown")")
         
         // Create session for this connection
         session = TelnetSession(
@@ -32,11 +41,17 @@ public class TelnetHandler: ChannelInboundHandler {
         
         // Send welcome message
         sendWelcomeMessage(context: context)
-        print("✅ Welcome message sent")
+        logInfo("✅ Welcome message sent")
     }
     
     public func channelInactive(context: ChannelHandlerContext) {
-        print("🔌 Telnet connection closed")
+        // Track connection closure
+        Self.connectionLock.lock()
+        Self.activeConnections = max(0, Self.activeConnections - 1)
+        Self.connectionLock.unlock()
+        
+        logInfo("🔌 Telnet connection closed (Remaining: \(Self.activeConnections))")
+        logAudit("Connection closed from \(context.remoteAddress?.description ?? "unknown")")
         session = nil
     }
     
@@ -68,11 +83,15 @@ public class TelnetHandler: ChannelInboundHandler {
             handleCommand(byte, context: context)
         case .subnegotiation:
             handleSubnegotiation(byte, context: context)
+        case .waitingForOption:
+            handleOptionCode(byte, context: context)
         }
     }
     
     private func handleNormalByte(_ byte: UInt8, context: ChannelHandlerContext) {
         guard let session = session else { return }
+        
+
         
         // Handle special characters
         switch byte {
@@ -81,9 +100,8 @@ public class TelnetHandler: ChannelInboundHandler {
             if !session.currentLine.isEmpty {
                 let input = session.currentLine
                 session.currentLine = ""
-                        // Add blank line after user input is complete
-        print("🔍 DEBUG: Adding blank line after user input")
-        sendBytes([13, 10], context: context) // CR + LF for blank line after user input
+                // Add blank line after user input is complete
+                sendBytes([13, 10], context: context) // CR + LF for blank line after user input
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
@@ -96,7 +114,11 @@ public class TelnetHandler: ChannelInboundHandler {
         case 32: // Space character
             // Handle space character - ensure it's properly echoed
             session.currentLine.append(" ")
-            sendBytes([32], context: context) // Send space byte directly (no change needed)
+            echoCharacter(" ", context: context) // Use consistent character rendering
+            
+        case 3: // ETX (End of Text) - ignore this control character
+            // Don't echo or process this character
+            break
             
         default:
             // Echo the character as user types and add to current line
@@ -112,8 +134,19 @@ public class TelnetHandler: ChannelInboundHandler {
         
         switch byte {
         case TelnetConstants.WILL, TelnetConstants.WONT, TelnetConstants.DO, TelnetConstants.DONT:
-            // Handle option negotiation
-            session.state = .normal
+            // Handle option negotiation - respond with DONT/WONT to disable all options
+            let response: UInt8
+            if byte == TelnetConstants.WILL || byte == TelnetConstants.DO {
+                response = byte == TelnetConstants.WILL ? TelnetConstants.DONT : TelnetConstants.WONT
+            } else {
+                response = byte == TelnetConstants.WONT ? TelnetConstants.DONT : TelnetConstants.WONT
+            }
+            
+            // Send response: IAC + response + option code
+            // We need to read the option code first
+            session.state = .waitingForOption
+            session.lastCommand = byte
+            session.lastResponse = response
         case TelnetConstants.SB:
             // Start subnegotiation
             session.state = .subnegotiation
@@ -133,10 +166,30 @@ public class TelnetHandler: ChannelInboundHandler {
         }
     }
     
+    private func handleOptionCode(_ byte: UInt8, context: ChannelHandlerContext) {
+        guard let session = session else { return }
+        
+        // Send the response: IAC + response + option code
+        let response = [TelnetConstants.IAC, session.lastResponse, byte]
+        sendBytes(response, context: context)
+        
+        // Reset state
+        session.state = .normal
+        session.lastCommand = 0
+        session.lastResponse = 0
+    }
+    
     private func processUserInput(_ input: String, context: ChannelHandlerContext) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
         if trimmed.isEmpty {
+            sendPrompt(context: context)
+            return
+        }
+        
+        // Validate input for security
+        guard validateInput(trimmed) else {
+            sendLine("AI: Input validation failed. Please check your input and try again.", context: context)
             sendPrompt(context: context)
             return
         }
@@ -151,6 +204,30 @@ public class TelnetHandler: ChannelInboundHandler {
         Task {
             await self.generateAIResponse(for: trimmed, context: context)
         }
+    }
+    
+    /// Validates user input for security and safety
+    private func validateInput(_ input: String) -> Bool {
+        // Check input length from configuration
+        guard input.count <= config.maxInputLength else { return false }
+        
+        // Check for null bytes or invalid characters
+        guard !input.contains(where: { $0.asciiValue == nil || $0.asciiValue == 0 }) else { return false }
+        
+        // Check for potentially dangerous patterns
+        let dangerousPatterns = [
+            "javascript:", "data:", "vbscript:", "onload=", "onerror=",
+            "eval(", "exec(", "system(", "shell_exec("
+        ]
+        
+        let lowercasedInput = input.lowercased()
+        for pattern in dangerousPatterns {
+            if lowercasedInput.contains(pattern) {
+                return false
+            }
+        }
+        
+        return true
     }
     
     private func parseNaturalLanguageCommand(_ input: String) -> String? {
@@ -195,10 +272,20 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func generateAIResponse(for input: String, context: ChannelHandlerContext) async {
+        // Prevent concurrent processing
+        guard !isProcessing else {
+            sendLine("AI: Please wait for the current response to complete.", context: context)
+            sendPrompt(context: context)
+            return
+        }
+        
+        isProcessing = true
+        defer { isProcessing = false }
+        
         do {
-            // System prompt for C64-style responses
+            // System prompt for natural AI responses
             let systemPrompt = """
-            You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. Do not use any special tags or formatting. Just respond naturally as a helpful AI assistant.
+            You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.
             """
             
             let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
@@ -207,56 +294,36 @@ public class TelnetHandler: ChannelInboundHandler {
             // sendText("AI: ", context: context) // REMOVED: will include in response text
             
             let stream = ollamaClient.generateStream(
-                model: "gemma2:2b", // Default model
+                model: config.defaultModel,
                 prompt: fullPrompt,
                 options: GenerateOptions(temperature: 0.7)
             )
             
             var fullResponse = ""
-            var isFirstChunk = true
             
             for try await chunk in stream {
                 if !chunk.response.isEmpty {
-                    print("🔍 DEBUG: Raw AI response: '\(chunk.response)'")
-                    // Filter out command tags (multiple patterns)
+                    // Filter out command tags with single optimized regex
                     let filteredResponse = chunk.response
-                        .replacingOccurrences(of: #"<cmd:[^>]*/>"#, with: "", options: .regularExpression)
-                        .replacingOccurrences(of: #"<CMD:[^>]*/>"#, with: "", options: .regularExpression)
-                        .replacingOccurrences(of: #"<Cmd:[^>]*/>"#, with: "", options: .regularExpression)
-                        .replacingOccurrences(of: #"<cmd:[^>]*>"#, with: "", options: .regularExpression)
-                        .replacingOccurrences(of: #"<CMD:[^>]*>"#, with: "", options: .regularExpression)
-                        .replacingOccurrences(of: #"<Cmd:[^>]*>"#, with: "", options: .regularExpression)
+                        .replacingOccurrences(of: #"<[Cc][Mm][Dd]:[^>]*/?>"#, with: "", options: String.CompareOptions.regularExpression)
                     
                     if !filteredResponse.isEmpty {
-                        // Clean up the response text but preserve spaces
-                        let cleanedResponse = filteredResponse
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                            .replacingOccurrences(of: "\n", with: " ")
-                            .replacingOccurrences(of: "  ", with: " ")
-                            // Fix multi-digit numbers by removing spaces between consecutive digits
-                            .replacingOccurrences(of: #"(\d)\s+(\d)"#, with: "$1$2", options: .regularExpression)
-                        
-                        print("🔍 DEBUG: Cleaned response: '\(cleanedResponse)'")
-                        
-                        if !cleanedResponse.isEmpty {
-                                                    // Add space before chunk if it's not the first one and doesn't start with punctuation
-                        let shouldAddSpace = !isFirstChunk && !cleanedResponse.hasPrefix("!") && !cleanedResponse.hasPrefix("?") && !cleanedResponse.hasPrefix(".") && !cleanedResponse.hasPrefix(",") && !cleanedResponse.hasPrefix("'") && !cleanedResponse.hasPrefix(";") && !cleanedResponse.hasPrefix(":")
-                        let responseWithSpace = shouldAddSpace ? " \(cleanedResponse)" : cleanedResponse
-                        print("🔍 DEBUG: Space check - isFirstChunk: \(isFirstChunk), shouldAddSpace: \(shouldAddSpace), response: '\(cleanedResponse)'")
-                            isFirstChunk = false
-                            
-                            // Accumulate the full response
-                            fullResponse += responseWithSpace
-                            
-                            print("🔍 DEBUG: Accumulated response: '\(fullResponse)'")
-                        }
+                        // Accumulate the raw response first
+                        fullResponse += filteredResponse
                     }
                 }
             }
             
+            // Clean up the response - just trim whitespace and normalize line breaks
+            if !fullResponse.isEmpty {
+                fullResponse = fullResponse
+                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "  ", with: " ")
+            }
+            
             // Now render the complete response with proper word wrap
             if !fullResponse.isEmpty {
-                print("🔍 DEBUG: Final full response: '\(fullResponse)'")
                 // Include "AI: " prefix in the response text so word wrap accounts for it
                 let responseWithPrefix = "AI: \(fullResponse)"
                 let rendered = renderer.render(responseWithPrefix, mode: config.renderMode, width: config.width)
@@ -264,7 +331,6 @@ public class TelnetHandler: ChannelInboundHandler {
             }
             
             // Add proper line breaks after AI response - blank line before prompt
-            print("🔍 DEBUG: Adding blank line after AI response")
             sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
             sendPrompt(context: context)
             
@@ -275,23 +341,21 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendWelcomeMessage(context: ChannelHandlerContext) {
-        let welcome = """
-        ========================================
-        Welcome to C64GPT!
-        This is a local LLM that makes your C64 feel sentient.
-        
-        Type something and press Enter to chat...
-        ========================================
-        
-        """
-        
-        sendText(welcome, context: context)
+        // Just send the prompt without any intro text
         sendPrompt(context: context)
     }
     
     private func sendPrompt(context: ChannelHandlerContext) {
-        // Send prompt through word wrap system for consistent column tracking
-        sendText("> ", context: context)
+        // Send prompt directly without word wrapping to avoid extra spaces
+        if config.renderMode == .petscii {
+            // Convert "> " to PETSCII bytes directly
+            let promptBytes: [UInt8] = [62, 32] // ASCII codes for "> "
+            sendBytes(promptBytes, context: context)
+        } else {
+            // ANSI mode - send UTF-8 bytes
+            let ansiBytes = Array("> ".utf8)
+            sendBytes(ansiBytes, context: context)
+        }
     }
     
     private func sendLine(_ text: String, context: ChannelHandlerContext) {
@@ -304,7 +368,8 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func echoCharacter(_ char: Character, context: ChannelHandlerContext) {
-        let rendered = renderer.render(String(char), mode: config.renderMode, width: config.width)
+        // Use the renderer's character conversion method which includes case switching
+        let rendered = renderer.renderCharacter(char, mode: config.renderMode)
         sendBytes(rendered, context: context)
     }
     
@@ -323,7 +388,7 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("❌ Telnet error: \(error)")
+        logError("❌ Telnet error: \(error)")
         context.close(promise: nil)
     }
 }
@@ -348,6 +413,7 @@ private enum SessionState {
     case normal
     case command
     case subnegotiation
+    case waitingForOption
 }
 
 /// Represents a Telnet session
@@ -357,6 +423,8 @@ private class TelnetSession {
     let renderer: PETSCIIRenderer
     var currentLine: String = ""
     var state: SessionState = .normal
+    var lastCommand: UInt8 = 0
+    var lastResponse: UInt8 = 0
     
     init(channel: Channel, config: ServerConfig, renderer: PETSCIIRenderer) {
         self.channel = channel
