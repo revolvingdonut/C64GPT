@@ -282,7 +282,8 @@ public class PETSCIIRenderer {
         print("🔍 DEEP DIVE: Text length: \(processedText.count)")
         print("🔍 DEEP DIVE: Text characters: \(Array(processedText).map { "'\($0)'" }.joined(separator: " "))")
         
-        let words = processedText.components(separatedBy: " ")
+        // Use smart word splitting that groups consecutive digits and letters
+        let words = smartWordSplit(processedText)
         var currentLineLength = 0
         
         print("📝 Processing \(words.count) words, width=\(width)")
@@ -349,6 +350,66 @@ public class PETSCIIRenderer {
     private func renderANSI(_ text: String, width: Int) -> [UInt8] {
         // For ANSI mode, just convert to ASCII bytes
         return Array(text.utf8)
+    }
+    
+    /// Smart word splitting that groups consecutive digits and letters
+    private func smartWordSplit(_ text: String) -> [String] {
+        var words: [String] = []
+        var currentWord = ""
+        var currentType: CharacterType = .space
+        
+        for char in text {
+            let charType = getCharacterType(char)
+            
+            // If we hit a space, end the current word
+            if charType == .space {
+                if !currentWord.isEmpty {
+                    words.append(currentWord)
+                    currentWord = ""
+                }
+                currentType = .space
+                continue
+            }
+            
+            // If character type changes (and not from space), end current word
+            if currentType != .space && currentType != charType {
+                if !currentWord.isEmpty {
+                    words.append(currentWord)
+                    currentWord = ""
+                }
+            }
+            
+            // Add character to current word
+            currentWord.append(char)
+            currentType = charType
+        }
+        
+        // Add final word if any
+        if !currentWord.isEmpty {
+            words.append(currentWord)
+        }
+        
+        return words
+    }
+    
+    /// Character type for smart word splitting
+    private enum CharacterType {
+        case space, digit, letter, punctuation, other
+    }
+    
+    /// Get the type of a character
+    private func getCharacterType(_ char: Character) -> CharacterType {
+        if char.isWhitespace {
+            return .space
+        } else if char.isNumber {
+            return .digit
+        } else if char.isLetter {
+            return .letter
+        } else if char.isPunctuation {
+            return .punctuation
+        } else {
+            return .other
+        }
     }
     
     /// Wraps text to specified width
