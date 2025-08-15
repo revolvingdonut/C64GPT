@@ -7,45 +7,62 @@ import NIO
 @main
 struct PetsponderDaemon {
     static func main() async {
-        print("🚀 Starting C64GPT Telnet Server...")
+        // Load configuration
+        let config = Configuration.load()
+        
+        // Configure logger
+        Logger.shared.configure(
+            level: config.logLevel,
+            enableAuditLogging: config.enableAuditLogging,
+            logFile: URL(fileURLWithPath: "c64gpt.log")
+        )
+        
+        logInfo("🚀 Starting C64GPT Telnet Server...")
         
         // Create server configuration
-        let config = ServerConfig(
-            listenAddress: "0.0.0.0",
-            telnetPort: 6400,
-            renderMode: .petscii,
-            width: 40
+        let serverConfig = ServerConfig(
+            listenAddress: config.listenAddress,
+            telnetPort: config.telnetPort,
+            controlHost: config.controlHost,
+            controlPort: config.controlPort,
+            renderMode: config.renderMode,
+            width: config.width,
+            wrap: config.wrap,
+            maxInputLength: config.maxInputLength,
+            defaultModel: config.defaultModel
         )
         
         // Set up signal handling for graceful shutdown
         signal(SIGINT) { _ in
-            print("\n🛑 Shutting down server gracefully...")
-            print("✅ Cleanup complete")
+            logInfo("🛑 Shutting down server gracefully...")
+            logInfo("✅ Cleanup complete")
             exit(0)
         }
         
         do {
             // Create and start the Telnet server
-            let server = try TelnetServer(config: config)
+            let server = try TelnetServer(config: serverConfig)
             let channel = try server.start()
             
-            print("✅ Server is running!")
-            print("📍 Listening on \(config.listenAddress):\(config.telnetPort)")
-            print("🎨 Render mode: \(config.renderMode)")
-            print("📏 Width: \(config.width)")
-            print("")
-            print("💡 Connect with: nc localhost \(config.telnetPort)")
-            print("💡 Or use a PETSCII terminal like SyncTerm")
-            print("")
-            print("🛑 Press Ctrl+C to stop the server")
+            logInfo("✅ Server is running!")
+            logInfo("📍 Listening on \(config.listenAddress):\(config.telnetPort)")
+            logInfo("🎨 Render mode: \(config.renderMode)")
+            logInfo("📏 Width: \(config.width)")
+            logInfo("🔒 Security: Rate limiting \(config.enableRateLimiting ? "enabled" : "disabled")")
+            logInfo("📝 Logging: Level \(config.logLevel.rawValue)")
+            logInfo("")
+            logInfo("💡 Connect with: nc localhost \(config.telnetPort)")
+            logInfo("💡 Or use a PETSCII terminal like SyncTerm")
+            logInfo("")
+            logInfo("🛑 Press Ctrl+C to stop the server")
             
             // Wait for the server to be closed
             try await channel.closeFuture.get()
             
-            print("✅ Server stopped gracefully")
+            logInfo("✅ Server stopped gracefully")
             
         } catch {
-            print("❌ Failed to start server: \(error)")
+            logError("❌ Failed to start server: \(error)")
             exit(1)
         }
     }

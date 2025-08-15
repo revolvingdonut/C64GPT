@@ -3,15 +3,22 @@ import Foundation
 /// Client for interacting with Ollama API
 public class OllamaClient {
     private let baseURL: String
+    private let session: URLSession
     
     public init(baseURL: String = "http://localhost:11434") {
         self.baseURL = baseURL
+        
+        // Create shared session configuration
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30.0
+        config.timeoutIntervalForResource = 300.0
+        self.session = URLSession(configuration: config)
     }
     
     /// Lists available models
     public func listModels() async throws -> [OllamaModel] {
         let url = URL(string: "\(baseURL)/api/tags")!
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await session.data(from: url)
         let response = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)
         return response.models
     }
@@ -26,7 +33,13 @@ public class OllamaClient {
         let body = PullRequest(name: name)
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Use longer timeout for model pulling
+        let pullConfig = URLSessionConfiguration.default
+        pullConfig.timeoutIntervalForRequest = 30.0
+        pullConfig.timeoutIntervalForResource = 600.0
+        let pullSession = URLSession(configuration: pullConfig)
+        
+        let (data, response) = try await pullSession.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
@@ -62,7 +75,7 @@ public class OllamaClient {
                     )
                     request.httpBody = try JSONEncoder().encode(body)
                     
-                    let (result, _) = try await URLSession.shared.bytes(for: request)
+                    let (result, _) = try await session.bytes(for: request)
                     
                     for try await line in result.lines {
                         if line.isEmpty { continue }
@@ -104,7 +117,7 @@ public class OllamaClient {
         )
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {

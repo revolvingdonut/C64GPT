@@ -1,0 +1,19 @@
+{
+  "listenAddress": "0.0.0.0",
+  "telnetPort": 6400,
+  "controlHost": "127.0.0.1",
+  "controlPort": 4333,
+  "renderMode": "petscii",
+  "width": 40,
+  "wrap": true,
+  "maxInputLength": 1000,
+  "enableRateLimiting": true,
+  "rateLimitRequests": 100,
+  "rateLimitWindow": 60,
+  "defaultModel": "gemma2:2b",
+  "ollamaBaseURL": "http://localhost:11434",
+  "requestTimeout": 30.0,
+  "resourceTimeout": 300.0,
+  "logLevel": "info",
+  "enableAuditLogging": true
+}

@@ -10,25 +10,22 @@ public class TelnetServer {
     private let config: ServerConfig
     private let renderer: PETSCIIRenderer
     private let ollamaClient: OllamaClient
-    private let pacingEngine: PacingEngine
     
     public init(config: ServerConfig) throws {
         self.config = config
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
         self.renderer = PETSCIIRenderer()
         self.ollamaClient = OllamaClient()
-        self.pacingEngine = PacingEngine()
         
         let renderer = self.renderer
         let config = self.config
         let ollamaClient = self.ollamaClient
-        let pacingEngine = self.pacingEngine
         
         self.bootstrap = ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .childChannelInitializer { channel in
-                channel.pipeline.addHandler(TelnetHandler(config: config, renderer: renderer, ollamaClient: ollamaClient, pacingEngine: pacingEngine))
+                channel.pipeline.addHandler(TelnetHandler(config: config, renderer: renderer, ollamaClient: ollamaClient))
             }
             .childChannelOption(ChannelOptions.socketOption(.so_keepalive), value: 1)
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 1)
@@ -37,13 +34,18 @@ public class TelnetServer {
     public func start() throws -> Channel {
         let channel = try bootstrap.bind(host: config.listenAddress, port: config.telnetPort).wait()
         
-        print("🚀 Telnet server started on \(config.listenAddress):\(config.telnetPort)")
-        print("📡 Connect with: telnet \(config.listenAddress) \(config.telnetPort)")
+        logInfo("🚀 Telnet server started on \(config.listenAddress):\(config.telnetPort)")
+        logInfo("📡 Connect with: telnet \(config.listenAddress) \(config.telnetPort)")
         
         return channel
     }
     
-    public func stop() {
+    public func stop() throws {
+        try group.syncShutdownGracefully()
+    }
+    
+    deinit {
+        // Ensure cleanup on deallocation
         try? group.syncShutdownGracefully()
     }
 }
@@ -57,6 +59,8 @@ public struct ServerConfig {
     public let renderMode: RenderMode
     public let width: Int
     public let wrap: Bool
+    public let maxInputLength: Int
+    public let defaultModel: String
     
     public init(
         listenAddress: String = "0.0.0.0",
@@ -65,7 +69,9 @@ public struct ServerConfig {
         controlPort: Int = 4333,
         renderMode: RenderMode = .petscii,
         width: Int = 40,
-        wrap: Bool = true
+        wrap: Bool = true,
+        maxInputLength: Int = 1000,
+        defaultModel: String = "gemma2:2b"
     ) {
         self.listenAddress = listenAddress
         self.telnetPort = telnetPort
@@ -74,11 +80,13 @@ public struct ServerConfig {
         self.renderMode = renderMode
         self.width = width
         self.wrap = wrap
+        self.maxInputLength = maxInputLength
+        self.defaultModel = defaultModel
     }
 }
 
 /// Rendering modes for terminal output
-public enum RenderMode {
-    case petscii
-    case ansi
+public enum RenderMode: String, CaseIterable {
+    case petscii = "petscii"
+    case ansi = "ansi"
 }

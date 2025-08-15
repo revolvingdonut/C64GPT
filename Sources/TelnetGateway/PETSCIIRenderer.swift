@@ -3,197 +3,19 @@ import Foundation
 /// Renders text for C64 terminal with PETSCII/ANSI support
 public class PETSCIIRenderer {
     
-    /// Emoji to PETSCII character mapping
+    /// Optimized emoji to PETSCII character mapping
     private let emojiMap: [String: String] = [
-        "🙂": "☺",
-        "❤️": "♥", 
-        "👍": "↑",
-        "👉": "→",
-        "🎉": "*",
-        "🤔": "?",
-        "😊": "☺",
-        "😄": "☺",
-        "😃": "☺",
-        "😀": "☺",
-        "😉": "☺",
-        "😎": "☺",
-        "😍": "♥",
-        "🥰": "♥",
-        "😘": "♥",
-        "💕": "♥",
-        "💖": "♥",
-        "💗": "♥",
-        "💘": "♥",
-        "💝": "♥",
-        "👎": "↓",
-        "👈": "←",
-        "👆": "↑",
-        "👇": "↓",
-        "🎊": "*",
-        "🎈": "*",
-        "🎁": "*",
-        "✨": "*",
-        "💫": "*",
-        "⭐": "*",
-        "🌟": "*",
-        "💥": "*",
-        "🔥": "*",
-        "💯": "*",
-        "💪": "↑",
-        "👊": "↑",
-        "✌️": "↑",
-        "🤞": "↑",
-        "👌": "↑",
-        "🤟": "↑",
-        "🤘": "↑",
-        "👋": "↑",
-        "👏": "↑",
-        "🙌": "↑",
-        "🤲": "↑",
-        "🤝": "↑",
-        "🙏": "↑",
-        "✍️": "↑",
-        "💅": "↑",
-        "🤳": "↑",
-        "🦾": "↑",
-        "🦿": "↑",
-        "🦵": "↑",
-        "🦶": "↑",
-        "👂": "↑",
-        "🦻": "↑",
-        "👃": "↑",
-        "🧠": "↑",
-        "🫀": "♥",
-        "🫁": "↑",
-        "🦷": "↑",
-        "🦴": "↑",
-        "👀": "↑",
-        "👁️": "↑",
-        "👅": "↑",
-        "👄": "↑",
-        "💋": "♥",
-        "🩸": "♥",
-        "💉": "↑",
-        "🩹": "↑",
-        "🩺": "↑",
-        "🩻": "↑",
-        "🩼": "↑",
-        "🩽": "↑",
-        "🩾": "↑",
-        "🩿": "↑",
-        "🪀": "*",
-        "🪁": "*",
-        "🪂": "*",
-        "🪃": "*",
-        "🪄": "*",
-        "🪅": "*",
-        "🪆": "*",
-        "🪇": "*",
-        "🪈": "*",
-        "🪉": "*",
-        "🪊": "*",
-        "🪋": "*",
-        "🪌": "*",
-        "🪍": "*",
-        "🪎": "*",
-        "🪏": "*",
-        "🪐": "*",
-        "🪑": "*",
-        "🪒": "*",
-        "🪓": "*",
-        "🪔": "*",
-        "🪕": "*",
-        "🪖": "*",
-        "🪗": "*",
-        "🪘": "*",
-        "🪙": "*",
-        "🪚": "*",
-        "🪛": "*",
-        "🪜": "*",
-        "🪝": "*",
-        "🪞": "*",
-        "🪟": "*",
-        "🪠": "*",
-        "🪡": "*",
-        "🪢": "*",
-        "🪣": "*",
-        "🪤": "*",
-        "🪥": "*",
-        "🪦": "*",
-        "🪧": "*",
-        "🪨": "*",
-        "🪩": "*",
-        "🪪": "*",
-        "🪫": "*",
-        "🪬": "*",
-        "🪭": "*",
-        "🪮": "*",
-        "🪯": "*",
-        "🪰": "*",
-        "🪱": "*",
-        "🪲": "*",
-        "🪳": "*",
-        "🪴": "*",
-        "🪵": "*",
-        "🪶": "*",
-        "🪷": "*",
-        "🪸": "*",
-        "🪹": "*",
-        "🪺": "*",
-        "🫂": "♥",
-        "🫃": "↑",
-        "🫄": "↑",
-        "🫅": "↑",
-        "🫎": "↑",
-        "🫏": "↑",
-        "🫐": "*",
-        "🫑": "*",
-        "🫒": "*",
-        "🫓": "*",
-        "🫔": "*",
-        "🫕": "*",
-        "🫖": "*",
-        "🫗": "*",
-        "🫘": "*",
-        "🫙": "*",
-        "🫚": "*",
-        "🫛": "*",
-        "🫜": "*",
-        "🫝": "*",
-        "🫞": "*",
-        "🫟": "*",
-        "🫠": "*",
-        "🫡": "*",
-        "🫢": "*",
-        "🫣": "*",
-        "🫤": "*",
-        "🫥": "*",
-        "🫦": "*",
-        "🫧": "*",
-        "🫨": "*",
-        "🫩": "*",
-        "🫪": "*",
-        "🫫": "*",
-        "🫬": "*",
-        "🫭": "*",
-        "🫮": "*",
-        "🫯": "*",
-        "🫰": "*",
-        "🫱": "→",
-        "🫲": "←",
-        "🫳": "↓",
-        "🫴": "↑",
-        "🫵": "→",
-        "🫶": "♥",
-        "🫷": "←",
-        "🫸": "→",
-        "🫹": "↑",
-        "🫺": "↑",
-        "🫻": "↑",
-        "🫼": "↑",
-        "🫽": "↑",
-        "🫾": "↑",
-        "🫿": "↑"
+        // Face emojis -> ☺
+        "🙂": "☺", "😊": "☺", "😄": "☺", "😃": "☺", "😀": "☺", "😉": "☺", "😎": "☺",
+        // Heart emojis -> ♥
+        "❤️": "♥", "😍": "♥", "🥰": "♥", "😘": "♥", "💕": "♥", "💖": "♥", "💗": "♥", "💘": "♥", "💝": "♥", "🫂": "♥", "🫶": "♥",
+        // Arrow emojis -> ↑↓←→
+        "👍": "↑", "👆": "↑", "💪": "↑", "👊": "↑", "✌️": "↑", "🤞": "↑", "👌": "↑", "🤟": "↑", "🤘": "↑", "👋": "↑", "👏": "↑", "🙌": "↑", "🤲": "↑", "🤝": "↑", "🙏": "↑", "✍️": "↑", "💅": "↑", "🤳": "↑", "🦾": "↑", "🦿": "↑", "🦵": "↑", "🦶": "↑", "👂": "↑", "🦻": "↑", "👃": "↑", "🧠": "↑", "🫁": "↑", "🦷": "↑", "🦴": "↑", "👀": "↑", "👁️": "↑", "👅": "↑", "👄": "↑", "💉": "↑", "🩹": "↑", "🩺": "↑", "🩻": "↑", "🩼": "↑", "🩽": "↑", "🩾": "↑", "🩿": "↑", "🫃": "↑", "🫄": "↑", "🫅": "↑", "🫎": "↑", "🫏": "↑", "🫹": "↑", "🫺": "↑", "🫻": "↑", "🫼": "↑", "🫽": "↑", "🫾": "↑", "🫿": "↑",
+        "👎": "↓", "👇": "↓", "🫳": "↓",
+        "👉": "→", "🫱": "→", "🫵": "→", "🫸": "→",
+        "👈": "←", "🫲": "←", "🫷": "←",
+        // Decorative emojis -> *
+        "🎉": "*", "🎊": "*", "🎈": "*", "🎁": "*", "✨": "*", "💫": "*", "⭐": "*", "🌟": "*", "💥": "*", "🔥": "*", "💯": "*", "🪀": "*", "🪁": "*", "🪂": "*", "🪃": "*", "🪄": "*", "🪅": "*", "🪆": "*", "🪇": "*", "🪈": "*", "🪉": "*", "🪊": "*", "🪋": "*", "🪌": "*", "🪍": "*", "🪎": "*", "🪏": "*", "🪐": "*", "🪑": "*", "🪒": "*", "🪓": "*", "🪔": "*", "🪕": "*", "🪖": "*", "🪗": "*", "🪘": "*", "🪙": "*", "🪚": "*", "🪛": "*", "🪜": "*", "🪝": "*", "🪞": "*", "🪟": "*", "🪠": "*", "🪡": "*", "🪢": "*", "🪣": "*", "🪤": "*", "🪥": "*", "🪦": "*", "🪧": "*", "🪨": "*", "🪩": "*", "🪪": "*", "🪫": "*", "🪬": "*", "🪭": "*", "🪮": "*", "🪯": "*", "🪰": "*", "🪱": "*", "🪲": "*", "🪳": "*", "🪴": "*", "🪵": "*", "🪶": "*", "🪷": "*", "🪸": "*", "🪹": "*", "🪺": "*", "🫐": "*", "🫑": "*", "🫒": "*", "🫓": "*", "🫔": "*", "🫕": "*", "🫖": "*", "🫗": "*", "🫘": "*", "🫙": "*", "🫚": "*", "🫛": "*", "🫜": "*", "🫝": "*", "🫞": "*", "🫟": "*", "🫠": "*", "🫡": "*", "🫢": "*", "🫣": "*", "🫤": "*", "🫥": "*", "🫦": "*", "🫧": "*", "🫨": "*", "🫩": "*", "🫪": "*", "🫫": "*", "🫬": "*", "🫭": "*", "🫮": "*", "🫯": "*", "🫰": "*"
     ]
     
     /// Unicode to PETSCII character mapping
@@ -238,6 +60,23 @@ public class PETSCIIRenderer {
         }
     }
     
+    /// Converts a single character to PETSCII bytes (no case switching for user input)
+    public func renderCharacter(_ char: Character, mode: RenderMode) -> [UInt8] {
+        switch mode {
+        case .petscii:
+            // Convert to PETSCII without case switching for user input
+            if let petsciiChar = unicodeToPetscii[char], let byte = petsciiChar.asciiValue {
+                return [byte]
+            } else {
+                // Unknown character - use space
+                return [32]
+            }
+        case .ansi:
+            // ANSI mode - just UTF-8 bytes
+            return Array(String(char).utf8)
+        }
+    }
+    
     /// Renders text in PETSCII mode
     private func renderPETSCII(_ text: String, width: Int) -> [UInt8] {
         var result: [UInt8] = []
@@ -249,24 +88,18 @@ public class PETSCIIRenderer {
         }
         
         // Reverse case for PETSCII effect, but preserve apostrophes and contractions
-        print("🔤 Before case reversal: '\(processedText)'")
-        
-        // Use a more direct approach to avoid any string conversion issues
-        var reversedText = ""
-        for char in processedText {
+        let reversedText = processedText.map { char in
             if char.isUppercase {
-                reversedText.append(char.lowercased())
+                return String(char.lowercased())
             } else if char.isLowercase {
-                reversedText.append(char.uppercased())
+                return String(char.uppercased())
             } else {
-                reversedText.append(char)
+                return String(char)
             }
-        }
-        processedText = reversedText
-        print("🔤 After case reversal: '\(processedText)'")
+        }.joined()
         
         // Fix common contractions that got broken by case reversal
-        processedText = processedText
+        let fixedText = reversedText
             .replacingOccurrences(of: " ' S", with: "'S")
             .replacingOccurrences(of: " ' T", with: "'T")
             .replacingOccurrences(of: " ' RE", with: "'RE")
@@ -274,143 +107,85 @@ public class PETSCIIRenderer {
             .replacingOccurrences(of: " ' LL", with: "'LL")
             .replacingOccurrences(of: " ' D", with: "'D")
         
-        // Debug: print the case-reversed text
-        print("🔤 Case reversed: '\(processedText)'")
-        
-        // Word-aware rendering with proper word wrap - ONE WORD AT A TIME
-        print("🔍 DEEP DIVE: Original text: '\(processedText)'")
-        print("🔍 DEEP DIVE: Text length: \(processedText.count)")
-        print("🔍 DEEP DIVE: Text characters: \(Array(processedText).map { "'\($0)'" }.joined(separator: " "))")
-        
-        // Use smart word splitting that groups consecutive digits and letters
-        let words = smartWordSplit(processedText)
+        // Simple word wrap rendering
+        let words = fixedText.components(separatedBy: .whitespaces)
         var currentLineLength = 0
         
-        print("📝 Processing \(words.count) words, width=\(width)")
-        print("📝 Words array: \(words)") // Debug: show all words including empty ones
-        
         for (index, word) in words.enumerated() {
-            print("🔍 WORD [\(index)]: '\(word)' (length=\(word.count), currentLine=\(currentLineLength))")
-            print("🔍 DEEP DIVE: Word [\(index)] characters: \(Array(word).map { "'\($0)' (ascii: \($0.asciiValue ?? 0))" }.joined(separator: " "))")
-            
-            // Check if this word would exceed the line width (including space after word)
-            let spaceNeeded = index < words.count - 1 ? 1 : 0 // Space after word if not last
+            // Check if this word would exceed the line width
+            let spaceNeeded = index < words.count - 1 ? 1 : 0
             let totalNeeded = currentLineLength + word.count + spaceNeeded
-            let wrapBoundary = width - 1 // Wrap at column 39 instead of 40
-            
-            print("   📏 Space needed: \(spaceNeeded), Total needed: \(totalNeeded), Wrap boundary: \(wrapBoundary)")
+            let wrapBoundary = width - 1
             
             if totalNeeded > wrapBoundary && currentLineLength > 0 {
-                print("   ⬇️  WRAPPING: Adding CR+LF before word")
                 result.append(13) // CR
                 result.append(10) // LF
                 currentLineLength = 0
             }
             
             // Add the word
-            print("   📤 Adding word: '\(word)' (word.count=\(word.count))")
-            if word.isEmpty {
-                print("   ⚠️  WARNING: Empty word detected!")
-                continue
-            }
-            for (charIndex, char) in word.enumerated() {
-                print("   🔤 Char [\(charIndex)]: '\(char)' (ascii: \(char.asciiValue ?? 0))")
-                if let petsciiChar = unicodeToPetscii[char] {
-                    if let byte = petsciiChar.asciiValue {
-                        result.append(byte)
-                        currentLineLength += 1
-                        // Debug: Check for punctuation and special characters
-                        if char.isPunctuation || char.isNumber || !char.isLetter {
-                            print("   🔤 Special char: '\(char)' -> byte \(byte)")
+            if !word.isEmpty {
+                for char in word {
+                    if let petsciiChar = unicodeToPetscii[char] {
+                        if let byte = petsciiChar.asciiValue {
+                            result.append(byte)
+                            currentLineLength += 1
                         }
+                    } else {
+                        // Unknown character - use space
+                        result.append(32)
+                        currentLineLength += 1
                     }
-                } else {
-                    // Unknown character - use space
-                    print("   ⚠️  Unknown char: '\(char)' -> using space (32)")
-                    result.append(32)
-                    currentLineLength += 1
                 }
             }
             
             // Add space after word (except for the last word)
             if index < words.count - 1 {
-                print("   📤 Adding space after word")
-                result.append(32) // Space byte
+                result.append(32)
                 currentLineLength += 1
             }
-            
-            print("   ✅ After word: currentLineLength=\(currentLineLength)")
         }
         
-        print("🎯 Final result: \(result.count) bytes")
         return result
     }
     
-    /// Renders text in ANSI mode (fallback)
+    /// Renders text in ANSI mode with word wrap
     private func renderANSI(_ text: String, width: Int) -> [UInt8] {
-        // For ANSI mode, just convert to ASCII bytes
-        return Array(text.utf8)
-    }
-    
-    /// Smart word splitting that groups consecutive digits and letters
-    private func smartWordSplit(_ text: String) -> [String] {
-        var words: [String] = []
-        var currentWord = ""
-        var currentType: CharacterType = .space
+        // Simple word wrap for ANSI mode
+        let words = text.components(separatedBy: .whitespaces)
+        var result: [UInt8] = []
+        var currentLineLength = 0
         
-        for char in text {
-            let charType = getCharacterType(char)
+        for (index, word) in words.enumerated() {
+            // Check if this word would exceed the line width
+            let spaceNeeded = index < words.count - 1 ? 1 : 0
+            let totalNeeded = currentLineLength + word.count + spaceNeeded
+            let wrapBoundary = width - 1
             
-            // If we hit a space, end the current word
-            if charType == .space {
-                if !currentWord.isEmpty {
-                    words.append(currentWord)
-                    currentWord = ""
-                }
-                currentType = .space
-                continue
+            if totalNeeded > wrapBoundary && currentLineLength > 0 {
+                result.append(13) // CR
+                result.append(10) // LF
+                currentLineLength = 0
             }
             
-            // If character type changes (and not from space), end current word
-            if currentType != .space && currentType != charType {
-                if !currentWord.isEmpty {
-                    words.append(currentWord)
-                    currentWord = ""
-                }
+            // Add the word
+            if !word.isEmpty {
+                let wordBytes = Array(word.utf8)
+                result.append(contentsOf: wordBytes)
+                currentLineLength += word.count
             }
             
-            // Add character to current word
-            currentWord.append(char)
-            currentType = charType
+            // Add space after word (except for the last word)
+            if index < words.count - 1 {
+                result.append(32)
+                currentLineLength += 1
+            }
         }
         
-        // Add final word if any
-        if !currentWord.isEmpty {
-            words.append(currentWord)
-        }
-        
-        return words
+        return result
     }
     
-    /// Character type for smart word splitting
-    private enum CharacterType {
-        case space, digit, letter, punctuation, other
-    }
-    
-    /// Get the type of a character
-    private func getCharacterType(_ char: Character) -> CharacterType {
-        if char.isWhitespace {
-            return .space
-        } else if char.isNumber {
-            return .digit
-        } else if char.isLetter {
-            return .letter
-        } else if char.isPunctuation {
-            return .punctuation
-        } else {
-            return .other
-        }
-    }
+
     
     /// Wraps text to specified width
     public func wrapText(_ text: String, width: Int) -> [String] {
