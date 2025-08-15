@@ -8,7 +8,7 @@ public class TelnetHandler: ChannelInboundHandler {
     public typealias OutboundOut = ByteBuffer
     
     private let config: ServerConfig
-    private let renderer: PETSCIIRenderer
+    private let renderer: ANSIRenderer
     private let ollamaClient: OllamaClient
     private var session: TelnetSession?
     private var isProcessing = false
@@ -17,7 +17,7 @@ public class TelnetHandler: ChannelInboundHandler {
     private static var activeConnections = 0
     private static let connectionLock = NSLock()
     
-    public init(config: ServerConfig, renderer: PETSCIIRenderer, ollamaClient: OllamaClient) {
+    public init(config: ServerConfig, renderer: ANSIRenderer, ollamaClient: OllamaClient) {
         self.config = config
         self.renderer = renderer
         self.ollamaClient = ollamaClient
@@ -29,7 +29,7 @@ public class TelnetHandler: ChannelInboundHandler {
         Self.activeConnections += 1
         Self.connectionLock.unlock()
         
-        logInfo("🔌 New Telnet connection from \(context.remoteAddress?.description ?? "unknown") (Total: \(Self.activeConnections))")
+        logInfo("🔌 New Telnet connection from \(context.remoteAddress?.description ?? "unknown")")
         logAudit("Connection established from \(context.remoteAddress?.description ?? "unknown")")
         
         // Create session for this connection
@@ -41,7 +41,6 @@ public class TelnetHandler: ChannelInboundHandler {
         
         // Send welcome message
         sendWelcomeMessage(context: context)
-        logInfo("✅ Welcome message sent")
     }
     
     public func channelInactive(context: ChannelHandlerContext) {
@@ -50,7 +49,7 @@ public class TelnetHandler: ChannelInboundHandler {
         Self.activeConnections = max(0, Self.activeConnections - 1)
         Self.connectionLock.unlock()
         
-        logInfo("🔌 Telnet connection closed (Remaining: \(Self.activeConnections))")
+        logInfo("🔌 Telnet connection closed")
         logAudit("Connection closed from \(context.remoteAddress?.description ?? "unknown")")
         session = nil
     }
@@ -283,61 +282,62 @@ public class TelnetHandler: ChannelInboundHandler {
         defer { isProcessing = false }
         
         do {
-            // System prompt for natural AI responses
-            let systemPrompt = """
-            You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.
-            """
-            
-            let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
-            
-            // Start streaming response with proper line break
-            // sendText("AI: ", context: context) // REMOVED: will include in response text
-            
-            let stream = ollamaClient.generateStream(
-                model: config.defaultModel,
-                prompt: fullPrompt,
-                options: GenerateOptions(temperature: 0.7)
-            )
-            
-            var fullResponse = ""
-            
-            for try await chunk in stream {
-                if !chunk.response.isEmpty {
-                    // Filter out command tags with single optimized regex
-                    let filteredResponse = chunk.response
-                        .replacingOccurrences(of: #"<[Cc][Mm][Dd]:[^>]*/?>"#, with: "", options: String.CompareOptions.regularExpression)
-                    
-                    if !filteredResponse.isEmpty {
-                        // Accumulate the raw response first
-                        fullResponse += filteredResponse
-                    }
-                }
-            }
-            
-            // Clean up the response - just trim whitespace and normalize line breaks
-            if !fullResponse.isEmpty {
-                fullResponse = fullResponse
-                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-                    .replacingOccurrences(of: "\n", with: " ")
-                    .replacingOccurrences(of: "  ", with: " ")
-            }
-            
-            // Now render the complete response with proper word wrap
-            if !fullResponse.isEmpty {
-                // Include "AI: " prefix in the response text so word wrap accounts for it
-                let responseWithPrefix = "AI: \(fullResponse)"
-                let rendered = renderer.render(responseWithPrefix, mode: config.renderMode, width: config.width)
-                sendBytes(rendered, context: context)
-            }
-            
-            // Add proper line breaks after AI response - blank line before prompt
-            sendBytes([13, 10], context: context) // CR + LF for blank line after AI response
-            sendPrompt(context: context)
-            
+            let fullResponse = try await generateResponseFromAI(for: input)
+            sendAIResponse(fullResponse, context: context)
         } catch {
             sendLine("AI: Sorry, I encountered an error: \(error.localizedDescription)", context: context)
             sendPrompt(context: context)
         }
+    }
+    
+    private func generateResponseFromAI(for input: String) async throws -> String {
+        let systemPrompt = """
+        You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.
+        """
+        
+        let fullPrompt = "\(systemPrompt)\n\nUser: \(input)\nAI:"
+        
+        let stream = ollamaClient.generateStream(
+            model: config.defaultModel,
+            prompt: fullPrompt,
+            options: GenerateOptions(temperature: 0.7)
+        )
+        
+        var fullResponse = ""
+        
+        for try await chunk in stream {
+            if !chunk.response.isEmpty {
+                let filteredResponse = chunk.response
+                    .replacingOccurrences(of: #"<[Cc][Mm][Dd]:[^>]*/?>"#, with: "", options: String.CompareOptions.regularExpression)
+                
+                if !filteredResponse.isEmpty {
+                    fullResponse += filteredResponse
+                }
+            }
+        }
+        
+        return cleanResponse(fullResponse)
+    }
+    
+    private func cleanResponse(_ response: String) -> String {
+        guard !response.isEmpty else { return "" }
+        
+        return response
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "  ", with: " ")
+    }
+    
+    private func sendAIResponse(_ response: String, context: ChannelHandlerContext) {
+        if !response.isEmpty {
+            let responseWithPrefix = "AI: \(response)"
+            let rendered = renderer.render(responseWithPrefix, width: config.width)
+            sendBytes(rendered, context: context)
+        }
+        
+        // Add proper line breaks after AI response
+        sendBytes([13, 10], context: context)
+        sendPrompt(context: context)
     }
     
     private func sendWelcomeMessage(context: ChannelHandlerContext) {
@@ -347,15 +347,8 @@ public class TelnetHandler: ChannelInboundHandler {
     
     private func sendPrompt(context: ChannelHandlerContext) {
         // Send prompt directly without word wrapping to avoid extra spaces
-        if config.renderMode == .petscii {
-            // Convert "> " to PETSCII bytes directly
-            let promptBytes: [UInt8] = [62, 32] // ASCII codes for "> "
-            sendBytes(promptBytes, context: context)
-        } else {
-            // ANSI mode - send UTF-8 bytes
-            let ansiBytes = Array("> ".utf8)
-            sendBytes(ansiBytes, context: context)
-        }
+        let ansiBytes = Array("> ".utf8)
+        sendBytes(ansiBytes, context: context)
     }
     
     private func sendLine(_ text: String, context: ChannelHandlerContext) {
@@ -363,13 +356,13 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendText(_ text: String, context: ChannelHandlerContext) {
-        let rendered = renderer.render(text, mode: config.renderMode, width: config.width)
+        let rendered = renderer.render(text, width: config.width)
         sendBytes(rendered, context: context)
     }
     
     private func echoCharacter(_ char: Character, context: ChannelHandlerContext) {
-        // Use the renderer's character conversion method which includes case switching
-        let rendered = renderer.renderCharacter(char, mode: config.renderMode)
+        // Use the renderer's character conversion method
+        let rendered = renderer.renderCharacter(char)
         sendBytes(rendered, context: context)
     }
     
@@ -420,13 +413,13 @@ private enum SessionState {
 private class TelnetSession {
     let channel: Channel
     let config: ServerConfig
-    let renderer: PETSCIIRenderer
+    let renderer: ANSIRenderer
     var currentLine: String = ""
     var state: SessionState = .normal
     var lastCommand: UInt8 = 0
     var lastResponse: UInt8 = 0
     
-    init(channel: Channel, config: ServerConfig, renderer: PETSCIIRenderer) {
+    init(channel: Channel, config: ServerConfig, renderer: ANSIRenderer) {
         self.channel = channel
         self.config = config
         self.renderer = renderer

@@ -1,13 +1,13 @@
 # C64GPT
 
-A local LLM that makes a Commodore 64 feel sentient through Telnet. Chat with a small, local language model from a C64 (or emulator) with minimalist, immersive terminal UX featuring deliberate pacing for emphasis and PETSCII/ANSI rendering.
+A local LLM that makes a Commodore 64 feel sentient through Telnet. Chat with a small, local language model from a C64 (or emulator) with minimalist, immersive terminal UX featuring deliberate pacing for emphasis and ANSI rendering.
 
 ## 🎯 What is C64GPT?
 
 C64GPT is a "LAN-only LLM appliance" that creates a conversational AI experience on a Commodore 64. The Mac hosts a daemon that serves Telnet and streams model output with:
 
 - **Deliberate pacing** for **bold**/*italic* emphasis
-- **PETSCII/ANSI rendering** for authentic retro feel
+- **ANSI rendering** for authentic retro feel
 - **Natural language commands** (no menu navigation needed)
 - **SwiftUI control surface** for model management and metrics
 
@@ -20,7 +20,7 @@ Everything runs locally on your Mac - no internet required after initial model d
 |  macOS App (SwiftUI)       |<----------------------->|  Control API (SwiftNIO)|
 |  - Dashboard, Models, etc. |  (HTTP/WS)             |  + Telnet Gateway      |
 |  - Launch/monitor daemon   |                        |  - RFC854 + NAWS       |
-+--------------+-------------+                        |  - PETSCII/ANSI render |
++--------------+-------------+                        |  - ANSI render |
                |                                       +----+-------------------+
                | Spawn & supervise                          |
                v                                            | HTTP (localhost)
@@ -107,11 +107,11 @@ Everything runs locally on your Mac - no internet required after initial model d
 ### Emphasis Pacing
 - **Bold text** → Deliberate typing (110-130ms/char) with pauses
 - *Italic text* → Typewriter effect (70-90ms/char)
-- `` `code` `` → Reverse video (PETSCII REV ON/OFF)
+- `` `code` `` → Reverse video (ANSI reverse)
 - Ellipses `...` → 250ms pause after completion
 
 ### Emoji Mapping
-- 🙂 → `☺` • ❤️ → `♥` • 👍 → `↑` • 👉 → `→` • 🎉 → `*` • 🤔 → `?`
+- 😀/😊 → `:-)` • ❤️ → `♥` • 👍 → `↑` • 🎉 → `*` • 🤔 → `?` • 😍 → `<3` • 🔥 → `***` • 👋 → `~` • 😂 → `:-D`
 
 ## 📁 Project Structure
 
@@ -137,7 +137,7 @@ Edit `Config/config.toml` to customize:
 
 - Network ports and addresses
 - Default model and engine settings
-- Rendering mode (PETSCII/ANSI)
+- Rendering mode (ANSI)
 - Pacing speeds and emoji mappings
 - Security settings (PIN, CIDR allowlist)
 

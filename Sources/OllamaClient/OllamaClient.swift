@@ -33,23 +33,16 @@ public class OllamaClient {
         let body = PullRequest(name: name)
         request.httpBody = try JSONEncoder().encode(body)
         
-        // Use longer timeout for model pulling
-        let pullConfig = URLSessionConfiguration.default
-        pullConfig.timeoutIntervalForRequest = 30.0
-        pullConfig.timeoutIntervalForResource = 600.0
-        let pullSession = URLSession(configuration: pullConfig)
-        
-        let (data, response) = try await pullSession.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
             throw OllamaError.requestFailed
         }
         
-        // Parse the response to check for errors
         let pullResponse = try JSONDecoder().decode(PullResponse.self, from: data)
-        if pullResponse.error != nil {
-            throw OllamaError.modelPullFailed(pullResponse.error!)
+        if let error = pullResponse.error {
+            throw OllamaError.modelPullFailed(error)
         }
     }
     

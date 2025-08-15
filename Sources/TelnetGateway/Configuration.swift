@@ -10,7 +10,6 @@ public struct Configuration {
     public let controlPort: Int
     
     // MARK: - Rendering Configuration
-    public let renderMode: RenderMode
     public let width: Int
     public let wrap: Bool
     
@@ -35,7 +34,6 @@ public struct Configuration {
         telnetPort: Int = 6400,
         controlHost: String = "127.0.0.1",
         controlPort: Int = 4333,
-        renderMode: RenderMode = .petscii,
         width: Int = 40,
         wrap: Bool = true,
         maxInputLength: Int = 1000,
@@ -53,7 +51,6 @@ public struct Configuration {
         self.telnetPort = telnetPort
         self.controlHost = controlHost
         self.controlPort = controlPort
-        self.renderMode = renderMode
         self.width = width
         self.wrap = wrap
         self.maxInputLength = maxInputLength
@@ -83,8 +80,7 @@ public struct Configuration {
     private static func loadFromFile() -> Configuration? {
         let configPaths = [
             "Config/config.json",
-            "config.json",
-            "~/Library/Application Support/C64GPT/config.json"
+            "config.json"
         ]
         
         for path in configPaths {
@@ -98,12 +94,7 @@ public struct Configuration {
     
     /// Loads configuration from specific file path
     private static func loadFromPath(_ path: String) -> Configuration? {
-        let url: URL
-        if let urlFromString = URL(string: path) {
-            url = urlFromString
-        } else {
-            url = URL(fileURLWithPath: path)
-        }
+        let url = URL(fileURLWithPath: path)
         
         guard let data = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -120,7 +111,7 @@ public struct Configuration {
             telnetPort: Int(ProcessInfo.processInfo.environment["C64GPT_TELNET_PORT"] ?? "6400") ?? 6400,
             controlHost: ProcessInfo.processInfo.environment["C64GPT_CONTROL_HOST"] ?? "127.0.0.1",
             controlPort: Int(ProcessInfo.processInfo.environment["C64GPT_CONTROL_PORT"] ?? "4333") ?? 4333,
-            renderMode: RenderMode(rawValue: ProcessInfo.processInfo.environment["C64GPT_RENDER_MODE"] ?? "petscii") ?? .petscii,
+
             width: Int(ProcessInfo.processInfo.environment["C64GPT_WIDTH"] ?? "40") ?? 40,
             wrap: ProcessInfo.processInfo.environment["C64GPT_WRAP"] != "false",
             maxInputLength: Int(ProcessInfo.processInfo.environment["C64GPT_MAX_INPUT_LENGTH"] ?? "1000") ?? 1000,
@@ -143,7 +134,7 @@ public struct Configuration {
             telnetPort: json["telnetPort"] as? Int ?? 6400,
             controlHost: json["controlHost"] as? String ?? "127.0.0.1",
             controlPort: json["controlPort"] as? Int ?? 4333,
-            renderMode: RenderMode(rawValue: json["renderMode"] as? String ?? "petscii") ?? .petscii,
+
             width: json["width"] as? Int ?? 40,
             wrap: json["wrap"] as? Bool ?? true,
             maxInputLength: json["maxInputLength"] as? Int ?? 1000,
@@ -184,7 +175,7 @@ public struct Configuration {
             telnetPort: validTelnetPort,
             controlHost: config.controlHost,
             controlPort: validControlPort,
-            renderMode: config.renderMode,
+
             width: validWidth,
             wrap: config.wrap,
             maxInputLength: validMaxInputLength,
@@ -207,7 +198,7 @@ public struct Configuration {
             "telnetPort": telnetPort,
             "controlHost": controlHost,
             "controlPort": controlPort,
-            "renderMode": renderMode.rawValue,
+
             "width": width,
             "wrap": wrap,
             "maxInputLength": maxInputLength,

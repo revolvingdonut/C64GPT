@@ -3,7 +3,7 @@
 **Working title:** *C64GPT*\
 **Author:** Scott + ChatGPT\
 **Date:** Aug 14, 2025\
-**Goal:** Chat with a small, local LLM from a Commodore 64 (or emulator) over Telnet. A SwiftUI macOS app manages models and server lifecycle. The C64 experience is minimalist and immersive—like talking *to the computer*—using pacing for emphasis and PETSCII/ANSI rendering. Everything runs locally on the Mac (Internet only to download/update models).
+**Goal:** Chat with a small, local LLM from a Commodore 64 (or emulator) over Telnet. A SwiftUI macOS app manages models and server lifecycle. The C64 experience is minimalist and immersive—like talking *to the computer*—using pacing for emphasis and ANSI rendering. Everything runs locally on the Mac (Internet only to download/update models).
 
 ---
 
@@ -29,10 +29,10 @@
 **In-scope (MVP)**
 
 - SwiftUI GUI for server control, model management, and live metrics.
-- Telnet server with PETSCII (preferred) and ANSI fallback.
+- Telnet server with ANSI rendering.
 - Conversational control: users can type natural phrases (e.g., “disconnect now”) instead of navigating menus; slash commands still available.
 - Emphasis pacing: convert `**bold**` / `*italic*` to slowed per‑char output.
-- Emoji mapping: common emoji → PETSCII/ASCII.
+- Emoji mapping: common emoji → ANSI characters.
 
 **Out-of-scope (MVP)**
 
@@ -43,7 +43,7 @@
 ## 3) Non‑Goals
 
 - Building a rich menu system on C64.
-- Perfect Unicode rendering; we transliterate to a safe PETSCII/ANSI subset.
+- Perfect Unicode rendering; we transliterate to a safe ANSI subset.
 - Heavy graphics; we optimize readability and feel.
 
 ---
@@ -55,7 +55,7 @@
 |  macOS App (SwiftUI)       |<----------------------->|  Control API (SwiftNIO)|
 |  - Dashboard, Models, etc. |  (HTTP/WS)             |  + Telnet Gateway      |
 |  - Launch/monitor daemon   |                        |  - RFC854 + NAWS       |
-+--------------+-------------+                        |  - PETSCII/ANSI render |
++--------------+-------------+                        |  - ANSI render |
                |                                       +----+-------------------+
                | Spawn & supervise                          |
                v                                            | HTTP (localhost)
@@ -90,7 +90,7 @@
 - Smart wrap at 38 columns (2 for glyphs/scroll markers).
 - Pager shows `—More—` at row 24; `SPACE` to continue, `Q` to abort.
 
-**Mock (PETSCII feel)**
+**Mock (ANSI feel)**
 
 ```
 ┌PETsponder v0.3────────────────────────────────────────┐
@@ -116,17 +116,17 @@
 - Normal text: flush every **20–40 ms** per burst.
 - *Italic* → **typewriter**: **70–90 ms/char**.
 - **Bold** → **deliberate**: **110–130 ms/char** + **150 ms** pause before/after the span.
-- `` `code` `` → **reverse video** (PETSCII REV ON/OFF), normal cadence.
+- `` `code` `` → **reverse video** (ANSI reverse), normal cadence.
 - Ellipses `...` → +**250 ms** pause after completion.
 - Sentence end `.?!` → +**80–120 ms** pause.
 
-**Emoji mapping (defaults):** 🙂→`☺` • ❤️→`♥` • 👍→`↑` • 👉→`→` • 🎉→`*` • 🤔→`?`\
-Unknown emoji are dropped; once per message add a short hint like `(smile)`.
+**Emoji mapping (defaults):** 😀/😊→`:-)` • ❤️→`♥` • 👍→`↑` • 🎉→`*` • 🤔→`?` • 😍→`<3` • 🔥→`***` • 👋→`~` • 😂→`:-D`\
+Unknown emoji are passed through unchanged.
 
 ### 5.3 Natural‑Language Commands (no menuing)
 
-- The gateway performs light NLU for intents like: **disconnect**, **quit**, \*\*switch to \*\*, \*\*set temperature to \*\*, **use ansi/petscii**, **set width <40|80>**.
-- Slash commands still exist for power users: `/quit`, `/model <name>`, `/temp <n>`, `/ansi`, `/petscii`, `/wrap <on|off>`, `/clear`, `/save`, `/width <40|80>`.
+- The gateway performs light NLU for intents like: **disconnect**, **quit**, \*\*switch to \*\*, \*\*set temperature to \*\*, **set width <40|80>**.
+- Slash commands still exist for power users: `/quit`, `/model <name>`, `/temp <n>`, `/wrap <on|off>`, `/clear`, `/save`, `/width <40|80>`.
 
 ### 5.4 Sideband Command Tags (from the model)
 
@@ -139,7 +139,7 @@ Unknown emoji are dropped; once per message add a short hint like `(smile)`.
 <cmd:model name="gemma-2:2b"/>
 <cmd:temp value="0.8"/>
 <cmd:width value="80"/>
-<cmd:mode value="ansi|petscii"/>
+
 ```
 
 ---
@@ -180,7 +180,7 @@ Unknown emoji are dropped; once per message add a short hint like `(smile)`.
 **Per‑chat system prompt (inserted every time)**
 
 ```
-You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. If the user clearly asks to perform a control action (quit, clear, switch model, set temperature, change width, switch ANSI/PETSCII), emit an invisible sideband tag using this exact syntax, on its own token: <cmd:ACTION .../>. Then continue your reply naturally.
+You are the voice of a local computer on a Commodore 64 terminal. Keep replies concise, friendly, and plain text. Avoid heavy markdown. If the user clearly asks to perform a control action (quit, clear, switch model, set temperature, change width), emit an invisible sideband tag using this exact syntax, on its own token: <cmd:ACTION .../>. Then continue your reply naturally.
 ```
 
 ---
@@ -195,14 +195,14 @@ You are the voice of a local computer on a Commodore 64 terminal. Keep replies c
 
 **Session lifecycle**
 
-1. Connect → negotiate → detect PETSCII/ANSI.
+1. Connect → negotiate → detect ANSI.
 2. Draw splash; show current model; hint “type /help”.
 3. Stream tokens with pacing; `Ctrl‑C` cancels generation.
 4. `/quit` or “disconnect now” ends session gracefully.
 
 **Rendering**
 
-- Unicode→PETSCII transliteration; unsupported glyphs → `▒`.
+- Unicode→ANSI transliteration; unsupported glyphs → `▒`.
 - Greedy wrap at `WIDTH-2`; pager `—More—` at row 24.
 - Minimal cursor control (avoid flicker).
 
@@ -253,7 +253,7 @@ backend = "ollama"
 default_model = "<set in GUI>"
 
 [render]
-mode = "petscii"
+mode = "ansi"
 width = 40
 wrap = true
 italic_pace_ms = 80
@@ -284,7 +284,7 @@ transcripts = false
 **Phase 0 — Spike (1–2 days)**
 
 - Swift Package with targets: `PetsponderApp` (SwiftUI) and `PetsponderDaemon` (SwiftNIO).
-- Telnet echo server + PETSCII transliteration + ANSI fallback.
+- Telnet echo server + ANSI rendering.
 - Ollama client: streaming SSE to console.
 
 **Phase 1 — MVP (1–2 weeks)**
@@ -295,7 +295,7 @@ transcripts = false
 
 **Phase 2 — Polish (1–2 weeks)**
 
-- Metrics charts; transcripts; better PETSCII mappings; color themes; PIN auth; NAWS support; emoji map editor.
+- Metrics charts; transcripts; better ANSI mappings; color themes; PIN auth; NAWS support; emoji map editor.
 
 **Phase 3 — Nice‑to‑have**
 
@@ -325,7 +325,7 @@ transcripts = false
 **Atomic tasks for Cursor**
 
 1. Scaffold Swift Package (targets above); add minimal `main.swift` for daemon.
-2. Implement **TelnetGateway**: negotiation, echo, PETSCII transliteration, ANSI fallback.
+2. Implement **TelnetGateway**: negotiation, echo, ANSI rendering.
 3. Implement **OllamaClient**: `pull`, `list`, `generate` (SSE/NDJSON).
 4. Wire **pacing engine** into Telnet stream; implement markup detector & scheduler.
 5. Implement **Control API** (endpoints in §7); WS metrics/events.
@@ -348,7 +348,7 @@ transcripts = false
 
 **Guardrails**
 
-- Keep PETSCII cursor control minimal; avoid flicker.
+- Keep ANSI cursor control minimal; avoid flicker.
 - Never block token stream; apply backpressure only.
 - All configuration via `Config/config.toml`; sensible defaults if missing.
 
@@ -356,7 +356,7 @@ transcripts = false
 
 ## 15) Risks & Mitigations
 
-- **PETSCII fidelity** — Unicode lossiness. *Mitigation:* strict subset, ANSI fallback.
+- **ANSI fidelity** — Unicode lossiness. *Mitigation:* strict subset, graceful fallback.
 - **Performance variance** — lower‑end Macs. *Mitigation:* label models by perf; sane defaults.
 - **Client diversity** — emulators vs hardware. *Mitigation:* NAWS + `/width` override, `/ansi` switch.
 - **User confusion** — minimal UI. *Mitigation:* `/help` and gentle one‑line hints on connect.

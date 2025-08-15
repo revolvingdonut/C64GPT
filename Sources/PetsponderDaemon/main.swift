@@ -25,7 +25,6 @@ struct PetsponderDaemon {
             telnetPort: config.telnetPort,
             controlHost: config.controlHost,
             controlPort: config.controlPort,
-            renderMode: config.renderMode,
             width: config.width,
             wrap: config.wrap,
             maxInputLength: config.maxInputLength,
@@ -35,7 +34,6 @@ struct PetsponderDaemon {
         // Set up signal handling for graceful shutdown
         signal(SIGINT) { _ in
             logInfo("🛑 Shutting down server gracefully...")
-            logInfo("✅ Cleanup complete")
             exit(0)
         }
         
@@ -44,16 +42,9 @@ struct PetsponderDaemon {
             let server = try TelnetServer(config: serverConfig)
             let channel = try server.start()
             
-            logInfo("✅ Server is running!")
-            logInfo("📍 Listening on \(config.listenAddress):\(config.telnetPort)")
-            logInfo("🎨 Render mode: \(config.renderMode)")
-            logInfo("📏 Width: \(config.width)")
-            logInfo("🔒 Security: Rate limiting \(config.enableRateLimiting ? "enabled" : "disabled")")
-            logInfo("📝 Logging: Level \(config.logLevel.rawValue)")
-            logInfo("")
-            logInfo("💡 Connect with: nc localhost \(config.telnetPort)")
-            logInfo("💡 Or use a PETSCII terminal like SyncTerm")
-            logInfo("")
+            logInfo("✅ Server is running on \(config.listenAddress):\(config.telnetPort)")
+            logInfo("📏 Width: \(config.width), Rate limiting: \(config.enableRateLimiting ? "enabled" : "disabled")")
+            logInfo("💡 Connect with: telnet localhost \(config.telnetPort)")
             logInfo("🛑 Press Ctrl+C to stop the server")
             
             // Wait for the server to be closed

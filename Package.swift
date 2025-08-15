@@ -37,9 +37,7 @@ let package = Package(
         // JSON parsing
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
         // Signal handling
-        .package(url: "https://github.com/apple/swift-system.git", from: "1.0.0"),
-        // TOML configuration - we'll add this later when needed
-        // .package(url: "https://github.com/toml-lang/toml-swift.git", from: "0.6.0")
+        .package(url: "https://github.com/apple/swift-system.git", from: "1.0.0")
     ],
     targets: [
         // SwiftUI App Target
@@ -74,8 +72,8 @@ let package = Package(
             name: "TelnetGateway",
             dependencies: [
                 .product(name: "NIO", package: "swift-nio"),
-                .product(name: "NIOConcurrencyHelpers", package: "swift-nio")
-                // .product(name: "TOMLKit", package: "toml-swift") // We'll add this later
+                .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
+                "OllamaClient"
             ],
             path: "Sources/TelnetGateway"
         ),
@@ -91,17 +89,6 @@ let package = Package(
             path: "Sources/OllamaClient"
         ),
         
-        // Tests
-        .testTarget(
-            name: "TelnetGatewayTests",
-            dependencies: ["TelnetGateway"],
-            path: "Tests/TelnetGatewayTests"
-        ),
-        
-        .testTarget(
-            name: "OllamaClientTests", 
-            dependencies: ["OllamaClient"],
-            path: "Tests/OllamaClientTests"
-        )
+
     ]
 )

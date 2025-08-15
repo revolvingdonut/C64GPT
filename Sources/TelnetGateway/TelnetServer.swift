@@ -8,13 +8,13 @@ public class TelnetServer {
     private let group: EventLoopGroup
     private let bootstrap: ServerBootstrap
     private let config: ServerConfig
-    private let renderer: PETSCIIRenderer
+    private let renderer: ANSIRenderer
     private let ollamaClient: OllamaClient
     
     public init(config: ServerConfig) throws {
         self.config = config
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-        self.renderer = PETSCIIRenderer()
+        self.renderer = ANSIRenderer()
         self.ollamaClient = OllamaClient()
         
         let renderer = self.renderer
@@ -33,10 +33,6 @@ public class TelnetServer {
     
     public func start() throws -> Channel {
         let channel = try bootstrap.bind(host: config.listenAddress, port: config.telnetPort).wait()
-        
-        logInfo("🚀 Telnet server started on \(config.listenAddress):\(config.telnetPort)")
-        logInfo("📡 Connect with: telnet \(config.listenAddress) \(config.telnetPort)")
-        
         return channel
     }
     
@@ -56,7 +52,6 @@ public struct ServerConfig {
     public let telnetPort: Int
     public let controlHost: String
     public let controlPort: Int
-    public let renderMode: RenderMode
     public let width: Int
     public let wrap: Bool
     public let maxInputLength: Int
@@ -67,7 +62,6 @@ public struct ServerConfig {
         telnetPort: Int = 6400,
         controlHost: String = "127.0.0.1",
         controlPort: Int = 4333,
-        renderMode: RenderMode = .petscii,
         width: Int = 40,
         wrap: Bool = true,
         maxInputLength: Int = 1000,
@@ -77,7 +71,6 @@ public struct ServerConfig {
         self.telnetPort = telnetPort
         self.controlHost = controlHost
         self.controlPort = controlPort
-        self.renderMode = renderMode
         self.width = width
         self.wrap = wrap
         self.maxInputLength = maxInputLength
@@ -85,8 +78,4 @@ public struct ServerConfig {
     }
 }
 
-/// Rendering modes for terminal output
-public enum RenderMode: String, CaseIterable {
-    case petscii = "petscii"
-    case ansi = "ansi"
-}
+

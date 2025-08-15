@@ -137,41 +137,72 @@ class ServerManager: ObservableObject {
         isStarting = true
         statusMessage = "Starting server..."
         
-        // For now, just simulate server start
-        // In the real implementation, this would launch the PetsponderDaemon process
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.isRunning = true
-            self.isStarting = false
-            self.statusMessage = "Server started successfully!"
+        // Launch the PetsponderDaemon process
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
+        process.arguments = ["run", "PetsponderDaemon"]
+        process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        
+        do {
+            try process.run()
+            self.serverProcess = process
             
-            // Clear status message after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if self.statusMessage == "Server started successfully!" {
-                    self.statusMessage = ""
+            // Check if process started successfully
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if process.isRunning {
+                    self.isRunning = true
+                    self.isStarting = false
+                    self.statusMessage = "Server started successfully!"
+                } else {
+                    self.isStarting = false
+                    self.statusMessage = "Failed to start server"
+                }
+                
+                // Clear status message after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if self.statusMessage == "Server started successfully!" || self.statusMessage == "Failed to start server" {
+                        self.statusMessage = ""
+                    }
                 }
             }
+        } catch {
+            isStarting = false
+            statusMessage = "Error starting server: \(error.localizedDescription)"
         }
     }
     
     func stopServer() {
         statusMessage = "Stopping server..."
         
-        // For now, just simulate server stop
-        // In the real implementation, this would terminate the PetsponderDaemon process
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.isRunning = false
-            self.statusMessage = "Server stopped."
+        if let process = serverProcess, process.isRunning {
+            process.terminate()
             
-            // Clear status message after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if self.statusMessage == "Server stopped." {
-                    self.statusMessage = ""
+            // Give it a moment to terminate gracefully
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if !process.isRunning {
+                    self.isRunning = false
+                    self.statusMessage = "Server stopped."
+                } else {
+                    // Force kill if it didn't terminate gracefully
+                    process.interrupt()
+                    self.isRunning = false
+                    self.statusMessage = "Server force stopped."
+                }
+                
+                self.serverProcess = nil
+                
+                // Clear status message after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if self.statusMessage == "Server stopped." || self.statusMessage == "Server force stopped." {
+                        self.statusMessage = ""
+                    }
                 }
             }
+        } else {
+            isRunning = false
+            statusMessage = "Server was not running."
         }
     }
 }
 
-// #Preview {
-//     ContentView()
-// }
+
