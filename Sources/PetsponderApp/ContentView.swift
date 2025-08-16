@@ -1,5 +1,7 @@
 import SwiftUI
 import TelnetGateway
+import Core
+import UIComponents
 
 struct ContentView: View {
     @StateObject private var serverManager = ServerManager()
@@ -22,80 +24,49 @@ struct ContentView: View {
             // Server Status
             VStack(spacing: 16) {
                 HStack {
-                    Circle()
-                        .fill(serverManager.isRunning ? Color.green : Color.red)
-                        .frame(width: 12, height: 12)
-                    
-                    Text(serverManager.isRunning ? "Server Running" : "Server Stopped")
-                        .font(.headline)
+                    StatusIndicator(
+                        isActive: serverManager.isRunning,
+                        activeText: "Server Running",
+                        inactiveText: "Server Stopped",
+                        size: 12
+                    )
                     
                     Spacer()
                 }
                 
                 if serverManager.isRunning {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Telnet Port:")
-                            Spacer()
-                            Text("6400")
-                                .fontWeight(.medium)
-                        }
-                        
-                        HStack {
-                            Text("Connect with:")
-                            Spacer()
-                            Text("telnet localhost 6400")
-                                .font(.system(.body, design: .monospaced))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(4)
-                        }
-                    }
-                    .padding()
-                    .background(Color.secondary.opacity(0.05))
-                    .cornerRadius(8)
+                    ConnectionInfo()
                 }
             }
             .padding(.horizontal, 20)
             
             // Control Buttons
             HStack(spacing: 16) {
-                Button(action: {
-                    if serverManager.isRunning {
-                        serverManager.stopServer()
-                    } else {
-                        serverManager.startServer()
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: serverManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
-                        Text(serverManager.isRunning ? "Stop Server" : "Start Server")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(serverManager.isRunning ? Color.red : Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                }
-                .disabled(serverManager.isStarting)
+                ActionButton(
+                    title: serverManager.isRunning ? "Stop Server" : "Start Server",
+                    icon: serverManager.isRunning ? "stop.circle.fill" : "play.circle.fill",
+                    action: {
+                        if serverManager.isRunning {
+                            serverManager.stopServer()
+                        } else {
+                            serverManager.startServer()
+                        }
+                    },
+                    isEnabled: !serverManager.isStarting,
+                    backgroundColor: serverManager.isRunning ? .red : .green,
+                    isLoading: serverManager.isStarting
+                )
                 
-                Button(action: {
-                    // Copy connection command to clipboard
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString("telnet localhost 6400", forType: .string)
-                }) {
-                    HStack {
-                        Image(systemName: "doc.on.doc")
-                        Text("Copy Command")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                }
-                .disabled(!serverManager.isRunning)
+                ActionButton(
+                    title: "Copy Command",
+                    icon: "doc.on.doc",
+                    action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Constants.telnetCommand, forType: .string)
+                    },
+                    isEnabled: serverManager.isRunning,
+                    backgroundColor: .blue
+                )
             }
             .padding(.horizontal, 20)
             

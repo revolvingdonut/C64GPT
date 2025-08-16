@@ -1,5 +1,6 @@
 import XCTest
 @testable import OllamaClient
+@testable import Core
 
 final class OllamaClientTests: XCTestCase {
     

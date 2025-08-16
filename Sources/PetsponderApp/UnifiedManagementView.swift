@@ -1,6 +1,8 @@
 import SwiftUI
 import OllamaClient
 import TelnetGateway
+import Core
+import UIComponents
 
 struct UnifiedManagementView: View {
     @StateObject private var serverManager = ServerManager()
@@ -32,21 +34,11 @@ struct UnifiedManagementView: View {
                         Spacer()
                         
                         // Overall Status Badge
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(serverManager.isRunning && llmViewModel.isConnected ? Color.green : Color.red)
-                                .frame(width: 8, height: 8)
-                                .shadow(color: serverManager.isRunning && llmViewModel.isConnected ? .green.opacity(0.3) : .red.opacity(0.3), radius: 4)
-                            
-                            Text(serverManager.isRunning && llmViewModel.isConnected ? "Ready" : "Not Ready")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(serverManager.isRunning && llmViewModel.isConnected ? .green : .red)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.gray.opacity(0.15))
+                        StatusIndicator(
+                            isActive: serverManager.isRunning && llmViewModel.isConnected,
+                            activeText: "Ready",
+                            inactiveText: "Not Ready",
+                            size: 8
                         )
                     }
                     
@@ -119,6 +111,8 @@ struct UnifiedManagementView: View {
                     llmViewModel.updateSystemPrompt(newPrompt)
                 }
             )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .alert(alertTitle, isPresented: $showingAlert) {
             Button("OK") { }
@@ -152,30 +146,7 @@ struct UnifiedManagementView: View {
     }
 }
 
-struct TabButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-                                    Text(title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(isSelected ? .white : .white.opacity(0.6))
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? Color.gray : Color.gray.opacity(0.3))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isSelected ? Color.gray : Color.gray.opacity(0.5), lineWidth: 1)
-                )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
+
 
 struct ServerManagementTab: View {
     @ObservedObject var serverManager: ServerManager
@@ -198,141 +169,56 @@ struct ServerManagementTab: View {
                     Spacer()
                     
                     // Status indicator
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(serverManager.isRunning ? Color.green : Color.red)
-                            .frame(width: 12, height: 12)
-                            .shadow(color: serverManager.isRunning ? .green.opacity(0.3) : .red.opacity(0.3), radius: 4)
-                        
-                        Text(serverManager.isRunning ? "Online" : "Offline")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(serverManager.isRunning ? .green : .red)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(serverManager.isRunning ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                    StatusIndicator(
+                        isActive: serverManager.isRunning,
+                        activeText: "Online",
+                        inactiveText: "Offline",
+                        size: 12
                     )
                 }
                 
                 // Connection Info
                 if serverManager.isRunning {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Label("Telnet Port", systemImage: "network")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(.darkGray))
-                            
-                            Spacer()
-                            
-                            Text("6400")
-                                .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color.gray)
-                                )
-                        }
-                        
-                        HStack {
-                            Label("Connection", systemImage: "terminal")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(.darkGray))
-                            
-                            Spacer()
-                            
-                            Text("telnet localhost 6400")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(Color(.darkGray))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color.gray.opacity(0.15))
-                                )
-                        }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                            )
-                    )
+                    ConnectionInfo()
                 }
             }
             .padding(.horizontal, 24)
             
             // Control Buttons
             VStack(spacing: 12) {
-                Button(action: {
-                    if serverManager.isRunning {
-                        serverManager.stopServer()
-                    } else {
-                        serverManager.startServer()
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: serverManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 16, weight: .medium))
-                        Text(serverManager.isRunning ? "Stop Server" : "Start Server")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(serverManager.isRunning ? Color.gray : Color.gray)
-                    )
-                    .foregroundColor(.white)
-                }
-                .disabled(serverManager.isStarting)
+                ActionButton(
+                    title: serverManager.isRunning ? "Stop Server" : "Start Server",
+                    icon: serverManager.isRunning ? "stop.circle.fill" : "play.circle.fill",
+                    action: {
+                        if serverManager.isRunning {
+                            serverManager.stopServer()
+                        } else {
+                            serverManager.startServer()
+                        }
+                    },
+                    isEnabled: !serverManager.isStarting,
+                    isLoading: serverManager.isStarting
+                )
                 
-                Button(action: {
-                    // Copy connection command to clipboard
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString("telnet localhost 6400", forType: .string)
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Copy Connection Command")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.gray)
-                    )
-                    .foregroundColor(.white)
-                }
-                .disabled(!serverManager.isRunning)
+                ActionButton(
+                    title: "Copy Connection Command",
+                    icon: "doc.on.doc",
+                    action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Constants.telnetCommand, forType: .string)
+                    },
+                    isEnabled: serverManager.isRunning
+                )
             }
             .padding(.horizontal, 24)
             
             // Status Messages
             if !serverManager.statusMessage.isEmpty {
-                HStack {
-                    Image(systemName: serverManager.isRunning ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(serverManager.isRunning ? .green : .orange)
-                    
-                    Text(serverManager.statusMessage)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(serverManager.isRunning ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
+                AlertBanner(
+                    title: "Server Status",
+                    message: serverManager.statusMessage,
+                    type: serverManager.isRunning ? .success : .warning
                 )
-                .padding(.horizontal, 24)
             }
             
             Spacer()
@@ -407,6 +293,25 @@ struct LLMManagementTab: View {
                     .background(
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.gray.opacity(0.2))
+                    )
+                }
+                
+                Button(action: {
+                    // Test inline editing
+                    print("Inline test button pressed")
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Test Input")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.8))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.purple.opacity(0.2))
                     )
                 }
                 
@@ -534,6 +439,19 @@ struct LLMManagementTab: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
             }
+            
+            // Test Input Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Test Input (Inline)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                
+                TextField("Test typing here...", text: .constant(""))
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal, 24)
+            }
+            .padding(.vertical, 8)
             
             // Models Section
             VStack(alignment: .leading, spacing: 16) {
@@ -866,109 +784,51 @@ struct SystemPromptEditorView: View {
     let currentPrompt: String
     let onSave: (String) -> Void
     
-    @State private var editedPrompt: String = ""
-    @State private var showingResetAlert = false
+    @State private var editedPrompt: String
+    
+    init(isPresented: Binding<Bool>, currentPrompt: String, onSave: @escaping (String) -> Void) {
+        self._isPresented = isPresented
+        self.currentPrompt = currentPrompt
+        self.onSave = onSave
+        self._editedPrompt = State(initialValue: currentPrompt)
+    }
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Text("System Prompt Editor")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                
-                Text("Customize how the AI assistant behaves")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.7))
-            }
+        VStack(spacing: 16) {
+            // Simple header
+            Text("System Prompt")
+                .font(.headline)
+                .foregroundColor(.white)
             
-            // Editor
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("System Prompt")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Button("Reset to Default") {
-                        showingResetAlert = true
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.orange)
-                }
-                
-                TextEditor(text: $editedPrompt)
-                    .font(.system(size: 14, design: .monospaced))
-                    .foregroundColor(.white)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.4), lineWidth: 1)
-                    )
-                    .frame(minHeight: 200)
-            }
+            // Simple text editor
+            TextEditor(text: $editedPrompt)
+                .font(.system(size: 13))
+                .foregroundColor(.white)
+                .background(Color.black.opacity(0.3))
+                .frame(height: 150)
             
-            // Help Text
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Tips:")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("• Keep it concise and clear")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("• Define the AI's personality and behavior")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("• Avoid markdown or special formatting")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-            }
-            .padding(.horizontal, 4)
-            
-            // Action Buttons
-            HStack(spacing: 16) {
+            // Simple buttons
+            HStack(spacing: 12) {
                 Button("Cancel") {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
-                .foregroundColor(.white.opacity(0.7))
                 
-                Button("Save Changes") {
+                Button("Reset") {
+                    editedPrompt = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown."
+                }
+                
+                Button("Save") {
                     onSave(editedPrompt)
                     isPresented = false
                 }
                 .keyboardShortcut(.return)
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.blue)
-                )
+                .buttonStyle(.borderedProminent)
             }
         }
-        .padding(32)
-        .frame(width: 600, height: 500)
-        .background(Color.gray.opacity(0.1))
-        .onAppear {
-            editedPrompt = currentPrompt
-        }
-        .alert("Reset to Default", isPresented: $showingResetAlert) {
-            Button("Reset") {
-                editedPrompt = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown."
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This will reset the system prompt to the default value. Are you sure?")
-        }
+        .padding(20)
+        .frame(width: 400, height: 250)
+        .background(Color.black.opacity(0.8))
     }
 }
 
@@ -986,7 +846,7 @@ class LLMManagementViewModel: ObservableObject {
     @Published var needsServerRestart = false
     
     private let ollamaClient = OllamaClient()
-    private let config = Configuration.load()
+    private let config = SharedConfiguration.load()
     
     init() {
         defaultModel = config.defaultModel
@@ -1054,7 +914,7 @@ class LLMManagementViewModel: ObservableObject {
         do {
             let updatedConfig = config
             // Create a new configuration with the updated default model
-            let newConfig = Configuration(
+            let newConfig = SharedConfiguration(
                 listenAddress: updatedConfig.listenAddress,
                 telnetPort: updatedConfig.telnetPort,
                 controlHost: updatedConfig.controlHost,
@@ -1074,7 +934,7 @@ class LLMManagementViewModel: ObservableObject {
                 enableAuditLogging: updatedConfig.enableAuditLogging
             )
             
-            try newConfig.save(to: "Config/config.json")
+            try newConfig.save(to: Constants.configPath)
             needsServerRestart = true
             showAlert("Success", "Default model set to '\(name)'. Configuration saved. Use the 'Restart Server' button to apply changes.")
         } catch {
@@ -1089,7 +949,7 @@ class LLMManagementViewModel: ObservableObject {
         do {
             let updatedConfig = config
             // Create a new configuration with the updated system prompt
-            let newConfig = Configuration(
+            let newConfig = SharedConfiguration(
                 listenAddress: updatedConfig.listenAddress,
                 telnetPort: updatedConfig.telnetPort,
                 controlHost: updatedConfig.controlHost,
@@ -1109,7 +969,7 @@ class LLMManagementViewModel: ObservableObject {
                 enableAuditLogging: updatedConfig.enableAuditLogging
             )
             
-            try newConfig.save(to: "Config/config.json")
+            try newConfig.save(to: Constants.configPath)
             needsServerRestart = true
             showAlert("Success", "System prompt updated successfully. Use the 'Restart Server' button to apply changes.")
         } catch {
@@ -1128,217 +988,4 @@ class LLMManagementViewModel: ObservableObject {
     }
 }
 
-class ServerManager: ObservableObject {
-    @Published var isRunning = false
-    @Published var isStarting = false
-    @Published var statusMessage = ""
-    
-    private var serverProcess: Process?
-    private var serverPID: Int32?
-    private var statusCheckTimer: Timer?
-    
-    func startServer() {
-        isStarting = true
-        statusMessage = "Starting server..."
-        
-        // Kill any existing server processes first
-        killExistingServerProcesses()
-        
-        // Launch the PetsponderDaemon process
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-        process.arguments = ["run", "PetsponderDaemon"]
-        process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        
-        // Set up pipe for output
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        
-        // Handle process termination
-        process.terminationHandler = { [weak self] process in
-            DispatchQueue.main.async {
-                self?.handleServerTermination(process)
-            }
-        }
-        
-        do {
-            try process.run()
-            self.serverProcess = process
-            self.serverPID = process.processIdentifier
-            
-            // Check if process started successfully
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                if process.isRunning {
-                    self.isRunning = true
-                    self.isStarting = false
-                    self.statusMessage = "Server started successfully!"
-                    self.startStatusChecking()
-                    
-                    // Clear status message after 3 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        if self.statusMessage == "Server started successfully!" {
-                            self.statusMessage = ""
-                        }
-                    }
-                } else {
-                    self.isStarting = false
-                    self.statusMessage = "Failed to start server"
-                    self.serverProcess = nil
-                    self.serverPID = nil
-                }
-            }
-        } catch {
-            isStarting = false
-            statusMessage = "Error starting server: \(error.localizedDescription)"
-            serverProcess = nil
-            serverPID = nil
-        }
-    }
-    
-    func stopServer() {
-        statusMessage = "Stopping server..."
-        
-        // First try to stop the managed process
-        if let process = serverProcess, process.isRunning {
-            process.terminate()
-            
-            // Give it a moment to terminate gracefully
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                if !process.isRunning {
-                    self.handleServerStopped()
-                } else {
-                    // Force kill if it didn't terminate gracefully
-                    process.interrupt()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if !process.isRunning {
-                            self.handleServerStopped()
-                        } else {
-                            // Final force kill
-                            process.terminate()
-                            self.handleServerStopped()
-                        }
-                    }
-                }
-            }
-        } else {
-            // Try to kill by PID if we have it
-            if serverPID != nil {
-                killExistingServerProcesses()
-                handleServerStopped()
-            } else {
-                // Fallback: kill any server processes
-                killExistingServerProcesses()
-                handleServerStopped()
-            }
-        }
-    }
-    
-    private func handleServerTermination(_ process: Process) {
-        DispatchQueue.main.async {
-            self.isRunning = false
-            self.isStarting = false
-            self.serverProcess = nil
-            self.serverPID = nil
-            self.stopStatusChecking()
-            
-            if process.terminationStatus == 0 {
-                self.statusMessage = "Server stopped gracefully."
-            } else {
-                self.statusMessage = "Server stopped with exit code: \(process.terminationStatus)"
-            }
-            
-            // Clear status message after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if self.statusMessage.contains("Server stopped") {
-                    self.statusMessage = ""
-                }
-            }
-        }
-    }
-    
-    private func handleServerStopped() {
-        DispatchQueue.main.async {
-            self.isRunning = false
-            self.isStarting = false
-            self.serverProcess = nil
-            self.serverPID = nil
-            self.stopStatusChecking()
-            self.statusMessage = "Server stopped."
-            
-            // Clear status message after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if self.statusMessage == "Server stopped." {
-                    self.statusMessage = ""
-                }
-            }
-        }
-    }
-    
-    private func killExistingServerProcesses() {
-        // Kill any existing PetsponderDaemon processes
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-        task.arguments = ["-f", "PetsponderDaemon"]
-        
-        do {
-            try task.run()
-            task.waitUntilExit()
-        } catch {
-            // Ignore errors - process might not exist
-        }
-        
-        // Also try to kill by PID if we have a PID file
-        let pidFile = FileManager.default.currentDirectoryPath + "/c64gpt_unified.pid"
-        if let pidData = try? Data(contentsOf: URL(fileURLWithPath: pidFile)),
-           let pidString = String(data: pidData, encoding: .utf8),
-           let pid = Int32(pidString) {
-            
-            let killTask = Process()
-            killTask.executableURL = URL(fileURLWithPath: "/bin/kill")
-            killTask.arguments = ["\(pid)"]
-            
-            do {
-                try killTask.run()
-                killTask.waitUntilExit()
-            } catch {
-                // Ignore errors
-            }
-            
-            // Remove PID file
-            try? FileManager.default.removeItem(atPath: pidFile)
-        }
-    }
-    
-    private func startStatusChecking() {
-        statusCheckTimer?.invalidate()
-        statusCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.checkServerStatus()
-        }
-    }
-    
-    private func stopStatusChecking() {
-        statusCheckTimer?.invalidate()
-        statusCheckTimer = nil
-    }
-    
-    private func checkServerStatus() {
-        guard let process = serverProcess else {
-            isRunning = false
-            stopStatusChecking()
-            return
-        }
-        
-        if !process.isRunning {
-            handleServerTermination(process)
-            stopStatusChecking()
-        }
-    }
-    
-    deinit {
-        stopStatusChecking()
-        if let process = serverProcess, process.isRunning {
-            process.terminate()
-        }
-    }
-}
+

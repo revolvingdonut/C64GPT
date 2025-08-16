@@ -6,7 +6,6 @@ struct C64GPTApp: App {
         WindowGroup {
             UnifiedManagementView()
         }
-        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 800, height: 900)
     }
 }

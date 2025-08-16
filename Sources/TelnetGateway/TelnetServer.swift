@@ -2,6 +2,7 @@ import Foundation
 import NIO
 import NIOConcurrencyHelpers
 import OllamaClient
+import Core
 
 /// Main Telnet server that handles RFC854 protocol and connection management
 public class TelnetServer {
@@ -48,39 +49,7 @@ public class TelnetServer {
     }
 }
 
-/// Configuration for the Telnet server
-public struct ServerConfig {
-    public let listenAddress: String
-    public let telnetPort: Int
-    public let controlHost: String
-    public let controlPort: Int
-    public let width: Int
-    public let wrap: Bool
-    public let maxInputLength: Int
-    public let defaultModel: String
-    public let systemPrompt: String
-    
-    public init(
-        listenAddress: String = "0.0.0.0",
-        telnetPort: Int = 6400,
-        controlHost: String = "127.0.0.1",
-        controlPort: Int = 4333,
-        width: Int = 40,
-        wrap: Bool = true,
-        maxInputLength: Int = 1000,
-        defaultModel: String = "gemma2:2b",
-        systemPrompt: String = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown."
-    ) {
-        self.listenAddress = listenAddress
-        self.telnetPort = telnetPort
-        self.controlHost = controlHost
-        self.controlPort = controlPort
-        self.width = width
-        self.wrap = wrap
-        self.maxInputLength = maxInputLength
-        self.defaultModel = defaultModel
-        self.systemPrompt = systemPrompt
-    }
-}
+// Use SharedConfiguration from Core module instead of duplicate ServerConfig
+public typealias ServerConfig = SharedConfiguration
 
 

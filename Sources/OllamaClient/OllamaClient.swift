@@ -23,8 +23,8 @@ public class OllamaClient {
         return response.models
     }
     
-    /// Pulls a model from Ollama
-    public func pullModel(name: String) async throws {
+    /// Pulls a model from Ollama with optional progress updates
+    public func pullModel(name: String, progress: ((String) -> Void)? = nil) async throws {
         let url = URL(string: "\(baseURL)/api/pull")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -52,53 +52,24 @@ public class OllamaClient {
                 throw OllamaError.modelPullFailed(error)
             }
             
-            // If we get a "success" status, the pull completed successfully
-            if pullChunk.status == "success" {
-                return
-            }
-        }
-    }
-    
-    /// Pulls a model from Ollama with progress updates
-    public func pullModel(name: String, progress: @escaping (String) -> Void) async throws {
-        let url = URL(string: "\(baseURL)/api/pull")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body = PullRequest(name: name)
-        request.httpBody = try JSONEncoder().encode(body)
-        
-        let (result, response) = try await session.bytes(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw OllamaError.requestFailed
-        }
-        
-        // Process streaming response
-        for try await line in result.lines {
-            if line.isEmpty { continue }
-            
-            let data = line.data(using: .utf8)!
-            let pullChunk = try JSONDecoder().decode(PullChunk.self, from: data)
-            
-            // Check for errors in the stream
-            if let error = pullChunk.error {
-                throw OllamaError.modelPullFailed(error)
-            }
-            
-            // Update progress
-            if let total = pullChunk.total, let completed = pullChunk.completed {
-                let percentage = Int((Double(completed) / Double(total)) * 100)
-                progress("Downloading \(name): \(percentage)% (\(completed)/\(total) bytes)")
-            } else if pullChunk.status == "downloading" {
-                progress("Downloading \(name)...")
-            } else if pullChunk.status == "verifying" {
-                progress("Verifying \(name)...")
-            } else if pullChunk.status == "success" {
-                progress("Download completed!")
-                return
+            // Update progress if callback provided
+            if let progress = progress {
+                if let total = pullChunk.total, let completed = pullChunk.completed {
+                    let percentage = Int((Double(completed) / Double(total)) * 100)
+                    progress("Downloading \(name): \(percentage)% (\(completed)/\(total) bytes)")
+                } else if pullChunk.status == "downloading" {
+                    progress("Downloading \(name)...")
+                } else if pullChunk.status == "verifying" {
+                    progress("Verifying \(name)...")
+                } else if pullChunk.status == "success" {
+                    progress("Download completed!")
+                    return
+                }
+            } else {
+                // If no progress callback, just check for success
+                if pullChunk.status == "success" {
+                    return
+                }
             }
         }
     }
@@ -108,7 +79,7 @@ public class OllamaClient {
         model: String,
         prompt: String,
         options: GenerateOptions = GenerateOptions()
-    ) -> AsyncThrowingStream<GenerateChunk, Error> {
+    ) -> AsyncThrowingStream<GenerateResult, Error> {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
@@ -131,7 +102,7 @@ public class OllamaClient {
                         if line.isEmpty { continue }
                         
                         let data = line.data(using: .utf8)!
-                        let chunk = try JSONDecoder().decode(GenerateChunk.self, from: data)
+                        let chunk = try JSONDecoder().decode(GenerateResult.self, from: data)
                         
                         continuation.yield(chunk)
                         
@@ -174,8 +145,8 @@ public class OllamaClient {
             throw OllamaError.requestFailed
         }
         
-        let generateResponse = try JSONDecoder().decode(GenerateResponse.self, from: data)
-        return generateResponse.response
+        let generateResult = try JSONDecoder().decode(GenerateResult.self, from: data)
+        return generateResult.response
     }
 }
 
@@ -237,7 +208,7 @@ public struct GenerateRequest: Codable {
     }
 }
 
-public struct GenerateResponse: Codable {
+public struct GenerateResult: Codable {
     public let model: String
     public let response: String
     public let done: Bool
@@ -260,28 +231,9 @@ public struct GenerateResponse: Codable {
     }
 }
 
-public struct GenerateChunk: Codable {
-    public let model: String
-    public let response: String
-    public let done: Bool
-    public let context: [Int]?
-    public let totalDuration: Int64?
-    public let loadDuration: Int64?
-    public let promptEvalCount: Int?
-    public let promptEvalDuration: Int64?
-    public let evalCount: Int?
-    public let evalDuration: Int64?
-    
-    enum CodingKeys: String, CodingKey {
-        case model, response, done, context
-        case totalDuration = "total_duration"
-        case loadDuration = "load_duration"
-        case promptEvalCount = "prompt_eval_count"
-        case promptEvalDuration = "prompt_eval_duration"
-        case evalCount = "eval_count"
-        case evalDuration = "eval_duration"
-    }
-}
+// Type aliases for backward compatibility
+public typealias GenerateResponse = GenerateResult
+public typealias GenerateChunk = GenerateResult
 
 public struct PullRequest: Codable {
     public let name: String

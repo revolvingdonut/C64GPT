@@ -27,6 +27,14 @@ let package = Package(
         .library(
             name: "OllamaClient",
             targets: ["OllamaClient"]
+        ),
+        .library(
+            name: "Core",
+            targets: ["Core"]
+        ),
+        .library(
+            name: "UIComponents",
+            targets: ["UIComponents"]
         )
     ],
     dependencies: [
@@ -45,7 +53,9 @@ let package = Package(
             name: "PetsponderApp",
             dependencies: [
                 "TelnetGateway",
-                "OllamaClient"
+                "OllamaClient",
+                "Core",
+                "UIComponents"
             ],
             path: "Sources/PetsponderApp"
         ),
@@ -56,6 +66,7 @@ let package = Package(
             dependencies: [
                 "TelnetGateway",
                 "OllamaClient",
+                "Core",
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOHTTP2", package: "swift-nio-http2"),
@@ -71,6 +82,7 @@ let package = Package(
         .target(
             name: "TelnetGateway",
             dependencies: [
+                "Core",
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
                 "OllamaClient"
@@ -82,6 +94,7 @@ let package = Package(
         .target(
             name: "OllamaClient",
             dependencies: [
+                "Core",
                 .product(name: "NIO", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOExtras", package: "swift-nio-extras")
@@ -89,6 +102,33 @@ let package = Package(
             path: "Sources/OllamaClient"
         ),
         
-
+        // Core Module
+        .target(
+            name: "Core",
+            dependencies: [],
+            path: "Sources/Core"
+        ),
+        
+        // UI Components Module
+        .target(
+            name: "UIComponents",
+            dependencies: [
+                "Core"
+            ],
+            path: "Sources/UIComponents"
+        ),
+        
+        // Test Targets
+        .testTarget(
+            name: "OllamaClientTests",
+            dependencies: ["OllamaClient", "Core"],
+            path: "Tests/OllamaClientTests"
+        ),
+        
+        .testTarget(
+            name: "TelnetGatewayTests",
+            dependencies: ["TelnetGateway", "Core"],
+            path: "Tests/TelnetGatewayTests"
+        )
     ]
 )

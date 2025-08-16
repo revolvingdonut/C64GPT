@@ -1,5 +1,6 @@
 import Foundation
 import TelnetGateway
+import Core
 import SystemPackage
 import NIO
 
@@ -8,29 +9,19 @@ import NIO
 struct PetsponderDaemon {
     static func main() async {
         // Load configuration
-        let config = Configuration.load()
+        let config = SharedConfiguration.load()
         
         // Configure logger
         Logger.shared.configure(
             level: config.logLevel,
             enableAuditLogging: config.enableAuditLogging,
-            logFile: URL(fileURLWithPath: "c64gpt.log")
+            logFile: URL(fileURLWithPath: Constants.logPath)
         )
         
         logInfo("🚀 Starting C64GPT Telnet Server...")
         
-        // Create server configuration
-        let serverConfig = ServerConfig(
-            listenAddress: config.listenAddress,
-            telnetPort: config.telnetPort,
-            controlHost: config.controlHost,
-            controlPort: config.controlPort,
-            width: config.width,
-            wrap: config.wrap,
-            maxInputLength: config.maxInputLength,
-            defaultModel: config.defaultModel,
-            systemPrompt: config.systemPrompt
-        )
+        // Use shared configuration directly
+        let serverConfig = config
         
         // Set up signal handling for graceful shutdown
         signal(SIGINT) { _ in
@@ -48,10 +39,10 @@ struct PetsponderDaemon {
             let server = try TelnetServer(config: serverConfig)
             let channel = try server.start()
             
-            logInfo("✅ Server is running on \(config.listenAddress):\(config.telnetPort)")
-            logInfo("📏 Width: \(config.width), Rate limiting: \(config.enableRateLimiting ? "enabled" : "disabled")")
-            logInfo("💡 Connect with: telnet localhost \(config.telnetPort)")
-            logInfo("🛑 Press Ctrl+C to stop the server")
+                    logInfo("✅ Server is running on \(config.listenAddress):\(config.telnetPort)")
+        logInfo("📏 Width: \(config.width), Rate limiting: \(config.enableRateLimiting ? "enabled" : "disabled")")
+        logInfo("💡 Connect with: \(Constants.telnetCommand)")
+        logInfo("🛑 Press Ctrl+C to stop the server")
             
             // Wait for the server to be closed
             try await channel.closeFuture.get()

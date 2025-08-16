@@ -1,17 +1,18 @@
 import Foundation
+import Core
 
 /// Simple logging system for C64GPT
 public class Logger {
     public static let shared = Logger()
     
-    private var logLevel: LogLevel = .info
+    private var logLevel: Core.LogLevel = .info
     private var enableAuditLogging: Bool = true
     private var logFile: URL?
     
     private init() {}
     
     /// Configure the logger
-    public func configure(level: LogLevel, enableAuditLogging: Bool = true, logFile: URL? = nil) {
+    public func configure(level: Core.LogLevel, enableAuditLogging: Bool = true, logFile: URL? = nil) {
         self.logLevel = level
         self.enableAuditLogging = enableAuditLogging
         self.logFile = logFile
@@ -45,7 +46,7 @@ public class Logger {
     }
     
     /// Internal logging method
-    private func log(_ level: LogLevel, _ message: String, file: String, function: String, line: Int) {
+    private func log(_ level: Core.LogLevel, _ message: String, file: String, function: String, line: Int) {
         // Check if we should log this level
         guard level.priority >= logLevel.priority else { return }
         
@@ -82,6 +83,7 @@ public class Logger {
 }
 
 /// Convenience methods for quick logging
+/// @deprecated Use ErrorHandler from Core module for centralized error handling
 public func logDebug(_ message: String, file: String = #file, function: String = #function, line: Int = #line) {
     Logger.shared.debug(message, file: file, function: function, line: line)
 }

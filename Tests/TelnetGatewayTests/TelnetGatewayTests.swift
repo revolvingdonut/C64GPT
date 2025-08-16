@@ -1,11 +1,12 @@
 import XCTest
 @testable import TelnetGateway
+@testable import Core
 
 final class TelnetGatewayTests: XCTestCase {
     
     func testConfigurationValidation() throws {
         // Test valid configuration
-        let validConfig = Configuration(
+        let validConfig = SharedConfiguration(
             telnetPort: 6400,
             controlPort: 4333,
             width: 40,
@@ -16,12 +17,12 @@ final class TelnetGatewayTests: XCTestCase {
             resourceTimeout: 300.0
         )
         
-        let validated = Configuration.validateConfiguration(validConfig)
+        let validated = SharedConfiguration.validateConfiguration(validConfig)
         XCTAssertEqual(validated.telnetPort, 6400)
         XCTAssertEqual(validated.width, 40)
         
         // Test invalid configuration with defaults
-        let invalidConfig = Configuration(
+        let invalidConfig = SharedConfiguration(
             telnetPort: 99999, // Invalid port
             controlPort: 0, // Invalid port
             width: 5, // Too small
@@ -32,7 +33,7 @@ final class TelnetGatewayTests: XCTestCase {
             resourceTimeout: -1.0 // Invalid
         )
         
-        let validatedInvalid = Configuration.validateConfiguration(invalidConfig)
+        let validatedInvalid = SharedConfiguration.validateConfiguration(invalidConfig)
         XCTAssertEqual(validatedInvalid.telnetPort, 6400) // Default
         XCTAssertEqual(validatedInvalid.width, 40) // Default
         XCTAssertEqual(validatedInvalid.maxInputLength, 1000) // Default
@@ -67,7 +68,7 @@ final class TelnetGatewayTests: XCTestCase {
     
     func testWordWrapForUserInput() throws {
         // Test that word wrap configuration is properly handled
-        let config = Configuration(
+        let config = SharedConfiguration(
             width: 20,
             wrap: true,
             maxInputLength: 1000
@@ -77,7 +78,7 @@ final class TelnetGatewayTests: XCTestCase {
         XCTAssertTrue(config.wrap)
         
         // Test with word wrap disabled
-        let configNoWrap = Configuration(
+        let configNoWrap = SharedConfiguration(
             width: 20,
             wrap: false,
             maxInputLength: 1000
@@ -137,7 +138,7 @@ final class TelnetGatewayTests: XCTestCase {
     }
     
     func testServerConfig() throws {
-        let config = ServerConfig(
+        let config = SharedConfiguration(
             listenAddress: "127.0.0.1",
             telnetPort: 6400,
             width: 40,

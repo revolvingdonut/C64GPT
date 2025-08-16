@@ -1,6 +1,7 @@
 import Foundation
 import NIO
 import OllamaClient
+import Core
 
 /// Handles individual Telnet connections and implements RFC854 protocol
 public class TelnetHandler: ChannelInboundHandler {

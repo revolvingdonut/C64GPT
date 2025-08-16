@@ -1,6 +1,7 @@
 import Foundation
 
 /// Configuration management for C64GPT
+/// @deprecated Use SharedConfiguration from Core module instead
 public struct Configuration {
     
     // MARK: - Network Configuration
