@@ -312,17 +312,10 @@ public class TelnetHandler: ChannelInboundHandler {
             }
         }
         
-        return cleanResponse(fullResponse)
+        return fullResponse
     }
     
-    private func cleanResponse(_ response: String) -> String {
-        guard !response.isEmpty else { return "" }
-        
-        return response
-            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "  ", with: " ")
-    }
+
     
     private func sendAIResponse(_ response: String, context: ChannelHandlerContext) {
         if !response.isEmpty {

@@ -7,7 +7,7 @@
   "maxInputLength" : 1000,
   "controlPort" : 4333,
   "listenAddress" : "0.0.0.0",
-  "systemPrompt" : "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown.",
+  "systemPrompt" : "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown. Use double line breaks (two newlines) to separate paragraphs for better readability.",
   "width" : 40,
   "enableRateLimiting" : true,
   "ollamaBaseURL" : "http:\/\/localhost:11434",

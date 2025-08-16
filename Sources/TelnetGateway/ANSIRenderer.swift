@@ -41,34 +41,50 @@ public class ANSIRenderer {
         // First, translate emojis in the text
         let translatedText = translateEmojis(text)
         
-        // Simple word wrap for ANSI mode
-        let words = translatedText.components(separatedBy: .whitespaces)
+        // Split by newlines to handle line breaks and paragraphs
+        let lines = translatedText.components(separatedBy: .newlines)
         var result: [UInt8] = []
-        var currentLineLength = 0
         
-        for (index, word) in words.enumerated() {
-            // Check if this word would exceed the line width
-            let spaceNeeded = index < words.count - 1 ? 1 : 0
-            let totalNeeded = currentLineLength + word.count + spaceNeeded
-            let wrapBoundary = width - 1
-            
-            if totalNeeded > wrapBoundary && currentLineLength > 0 {
+        for (lineIndex, line) in lines.enumerated() {
+            // Add line break before this line (except the first one)
+            if lineIndex > 0 {
                 result.append(13) // CR
                 result.append(10) // LF
-                currentLineLength = 0
             }
             
-            // Add the word
-            if !word.isEmpty {
-                let wordBytes = Array(word.utf8)
-                result.append(contentsOf: wordBytes)
-                currentLineLength += word.count
+            // If this line is empty, it's a paragraph break - let the LLM control this
+            if line.trimmingCharacters(in: .whitespaces).isEmpty {
+                continue
             }
             
-            // Add space after word (except for the last word)
-            if index < words.count - 1 {
-                result.append(32)
-                currentLineLength += 1
+            // Word wrap for this line
+            let words = line.components(separatedBy: .whitespaces)
+            var currentLineLength = 0
+            
+            for (index, word) in words.enumerated() {
+                // Check if this word would exceed the line width
+                let spaceNeeded = index < words.count - 1 ? 1 : 0
+                let totalNeeded = currentLineLength + word.count + spaceNeeded
+                let wrapBoundary = width - 1
+                
+                if totalNeeded > wrapBoundary && currentLineLength > 0 {
+                    result.append(13) // CR
+                    result.append(10) // LF
+                    currentLineLength = 0
+                }
+                
+                // Add the word
+                if !word.isEmpty {
+                    let wordBytes = Array(word.utf8)
+                    result.append(contentsOf: wordBytes)
+                    currentLineLength += word.count
+                }
+                
+                // Add space after word (except for the last word)
+                if index < words.count - 1 {
+                    result.append(32)
+                    currentLineLength += 1
+                }
             }
         }
         
