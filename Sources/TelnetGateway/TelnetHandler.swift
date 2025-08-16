@@ -104,27 +104,39 @@ public class TelnetHandler: ChannelInboundHandler {
                 processUserInput(input, context: context)
             }
         case TelnetConstants.BS, TelnetConstants.DEL:
-            // Backspace - remove last character
-            if !session.currentLine.isEmpty {
-                session.currentLine.removeLast()
-                // Send backspace sequence
-                sendBackspace(context: context)
-            }
+            // Backspace - remove last character with word wrap support
+            session.handleBackspace(context: context)
         case 32: // Space character
-            // Handle space character - ensure it's properly echoed
-            session.currentLine.append(" ")
-            echoCharacter(" ", context: context) // Use consistent character rendering
+            // Handle space character with word wrap support
+            let char = Character(" ")
+            session.currentLine.append(char)
+            
+            // Check if we need to wrap before echoing the space
+            _ = session.checkAndWrapIfNeeded(char: char, context: context)
+            // Always echo the space, even if wrapped (it will appear on the new line)
+            echoCharacter(char, context: context)
+            // Reset current word after space
+            session.currentWord = ""
             
         case 3: // ETX (End of Text) - ignore this control character
             // Don't echo or process this character
             break
             
         default:
-            // Echo the character as user types and add to current line
+            // Echo the character as user types and add to current line with word wrap support
             let char = Character(UnicodeScalar(byte))
             session.currentLine.append(char)
-            // Send character through word wrap system for consistent column tracking
-            echoCharacter(char, context: context)
+            
+            // Check if we need to wrap before adding to current word
+            let wrapped = session.checkAndWrapIfNeeded(char: char, context: context)
+            
+            // Add character to current word for word-level wrapping (after checking wrap)
+            session.currentWord.append(char)
+            
+            // Only echo the character if we didn't wrap (if we wrapped, it's already been sent)
+            if !wrapped {
+                echoCharacter(char, context: context)
+            }
         }
     }
     
@@ -335,9 +347,14 @@ public class TelnetHandler: ChannelInboundHandler {
     }
     
     private func sendPrompt(context: ChannelHandlerContext) {
+        guard let session = session else { return }
+        
         // Send prompt directly without word wrapping to avoid extra spaces
         let ansiBytes = Array("> ".utf8)
         sendBytes(ansiBytes, context: context)
+        
+        // Reset cursor position for word wrap tracking
+        session.resetCursorPosition()
     }
     
     private func sendLine(_ text: String, context: ChannelHandlerContext) {
@@ -355,11 +372,7 @@ public class TelnetHandler: ChannelInboundHandler {
         sendBytes(rendered, context: context)
     }
     
-    private func sendBackspace(context: ChannelHandlerContext) {
-        // Send backspace sequence: BS SPACE BS
-        let backspace = [TelnetConstants.BS, 32, TelnetConstants.BS]
-        sendBytes(backspace, context: context)
-    }
+
     
     private func sendBytes(_ bytes: [UInt8], context: ChannelHandlerContext) {
         context.eventLoop.execute {
@@ -408,9 +421,101 @@ private class TelnetSession {
     var lastCommand: UInt8 = 0
     var lastResponse: UInt8 = 0
     
+    // Word wrap tracking for user input
+    var currentCursorColumn: Int = 0
+    var promptLength: Int = 2 // "> " prompt
+    var currentWord: String = "" // Track current word being typed
+    
     init(channel: Channel, config: ServerConfig, renderer: ANSIRenderer) {
         self.channel = channel
         self.config = config
         self.renderer = renderer
+    }
+    
+    /// Resets cursor position (called after sending prompt)
+    func resetCursorPosition() {
+        currentCursorColumn = promptLength
+        currentWord = ""
+    }
+    
+    /// Checks if adding a character would exceed the line width and wraps if necessary
+    func checkAndWrapIfNeeded(char: Character, context: ChannelHandlerContext) -> Bool {
+        guard config.wrap else { return false }
+        
+        let charWidth = String(char).count
+        let newPosition = currentCursorColumn + charWidth
+        
+        // Check if this would reach or exceed the line width (accounting for the prompt)
+        // Use a slightly more aggressive limit to account for terminal padding
+        if newPosition >= config.width - 1 {
+            // For word-level wrapping, we need to check if this is a space
+            // If it's a space, we can wrap before it
+            // If it's not a space, we need to check if the current word would fit on a new line
+            if char == " " {
+                // Space character - wrap before the space
+                context.eventLoop.execute {
+                    var buffer = context.channel.allocator.buffer(capacity: 2)
+                    buffer.writeBytes([13, 10]) // CR + LF
+                    context.writeAndFlush(NIOAny(buffer), promise: nil)
+                }
+                
+                // Reset cursor position for new line (don't count the space)
+                currentCursorColumn = promptLength
+                currentWord = ""
+                return true
+            } else {
+                // For non-space characters, we've reached the column limit while typing a word
+                // Move the current word to the next line
+                let wordLength = currentWord.count + charWidth
+                let wordToMove = currentWord + String(char) // currentWord doesn't include char yet
+                
+                context.eventLoop.execute {
+                    var buffer = context.channel.allocator.buffer(capacity: 200)
+                    
+                    // First, clear the current word from the current line using backspaces
+                    for _ in 0..<self.currentWord.count {
+                        buffer.writeBytes([TelnetConstants.BS, 32, TelnetConstants.BS]) // BS SPACE BS
+                    }
+                    
+                    // Send line break
+                    buffer.writeBytes([13, 10]) // CR + LF
+                    
+                    // Send the word that should be moved to the new line (no prompt)
+                    buffer.writeString(wordToMove)
+                    
+                    context.writeAndFlush(NIOAny(buffer), promise: nil)
+                }
+                
+                // Reset cursor position for new line, accounting for the word we've moved (no prompt)
+                currentCursorColumn = wordLength
+                return true
+            }
+        }
+        
+        currentCursorColumn = newPosition
+        return false
+    }
+    
+    /// Handles backspace with proper cursor position tracking
+    func handleBackspace(context: ChannelHandlerContext) {
+        guard !currentLine.isEmpty else { return }
+        
+        let lastChar = currentLine.removeLast()
+        let charWidth = String(lastChar).count
+        
+        // Update cursor position
+        currentCursorColumn = max(promptLength, currentCursorColumn - charWidth)
+        
+        // Update current word if it's not empty
+        if !currentWord.isEmpty {
+            currentWord.removeLast()
+        }
+        
+        // Send backspace sequence
+        context.eventLoop.execute {
+            var buffer = context.channel.allocator.buffer(capacity: 3)
+            buffer.writeBytes([TelnetConstants.BS, 32, TelnetConstants.BS]) // BS SPACE BS
+            context.writeAndFlush(NIOAny(buffer), promise: nil)
+        }
     }
 }
