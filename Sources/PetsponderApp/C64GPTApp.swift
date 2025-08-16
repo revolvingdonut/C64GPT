@@ -6,6 +6,6 @@ struct C64GPTApp: App {
         WindowGroup {
             UnifiedManagementView()
         }
-        .defaultSize(width: 800, height: 900)
+        .defaultSize(width: 600, height: 700)
     }
 }

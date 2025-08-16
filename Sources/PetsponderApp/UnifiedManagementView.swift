@@ -18,83 +18,83 @@ struct UnifiedManagementView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-                // Modern Header
-                VStack(spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("C64GPT Management")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            
-                            Text(selectedTab == 0 ? "Server Management" : "LLM Model Management")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
+            // Compact Header
+            VStack(spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("C64GPT Management")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
                         
-                        Spacer()
-                        
-                        // Overall Status Badge
-                        StatusIndicator(
-                            isActive: serverManager.isRunning && llmViewModel.isConnected,
-                            activeText: "Ready",
-                            inactiveText: "Not Ready",
-                            size: 8
-                        )
+                        Text(selectedTab == 0 ? "Server Management" : "LLM Model Management")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
                     }
                     
-                    // Tab Bar
-                    HStack(spacing: 8) {
-                        TabButton(
-                            title: "Server",
-                            isSelected: selectedTab == 0,
-                            action: { selectedTab = 0 }
-                        )
-                        
-                        TabButton(
-                            title: "Models",
-                            isSelected: selectedTab == 1,
-                            action: { selectedTab = 1 }
-                        )
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.2))
+                    Spacer()
+                    
+                    // Compact Status Badge
+                    StatusIndicator(
+                        isActive: serverManager.isRunning && llmViewModel.isConnected,
+                        activeText: "Ready",
+                        inactiveText: "Not Ready",
+                        size: 6
                     )
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 16)
-                .background(
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.15))
-                        .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
-                )
                 
-                // Tab Content
-                if selectedTab == 0 {
-                    ServerManagementTab(serverManager: serverManager)
-                } else {
-                    LLMManagementTab(
-                        viewModel: llmViewModel,
-                        serverManager: serverManager,
-                        showingModelDownload: $showingModelDownload,
-                        showingSystemPromptEditor: $showingSystemPromptEditor,
-                        modelToRemove: $modelToRemove,
-                        showingRemoveConfirmation: $showingRemoveConfirmation
+                // Compact Tab Bar
+                HStack(spacing: 4) {
+                    TabButton(
+                        title: "Server",
+                        isSelected: selectedTab == 0,
+                        action: { selectedTab = 0 }
+                    )
+                    
+                    TabButton(
+                        title: "Models",
+                        isSelected: selectedTab == 1,
+                        action: { selectedTab = 1 }
                     )
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.2))
+                )
             }
-            .background(Color.black.opacity(0.1))
-        .frame(minWidth: 700, minHeight: 800)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(
+                Rectangle()
+                    .fill(Color.gray.opacity(0.15))
+                    .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
+            )
+            
+            // Tab Content
+            if selectedTab == 0 {
+                ServerManagementTab(serverManager: serverManager)
+            } else {
+                LLMManagementTab(
+                    viewModel: llmViewModel,
+                    serverManager: serverManager,
+                    showingModelDownload: $showingModelDownload,
+                    showingSystemPromptEditor: $showingSystemPromptEditor,
+                    modelToRemove: $modelToRemove,
+                    showingRemoveConfirmation: $showingRemoveConfirmation
+                )
+            }
+        }
+        .background(Color.black.opacity(0.1))
+        .frame(minWidth: 500, minHeight: 600)
         .onAppear {
             Task {
                 await llmViewModel.refreshModels()
             }
         }
         .sheet(isPresented: $showingModelDownload) {
-            ModernModelDownloadView(
+            CompactModelDownloadView(
                 isPresented: $showingModelDownload,
                 onDownload: { modelName in
                     Task {
@@ -104,14 +104,14 @@ struct UnifiedManagementView: View {
             )
         }
         .sheet(isPresented: $showingSystemPromptEditor) {
-            SystemPromptEditorView(
+            CompactSystemPromptEditorView(
                 isPresented: $showingSystemPromptEditor,
                 currentPrompt: llmViewModel.systemPrompt,
                 onSave: { newPrompt in
                     llmViewModel.updateSystemPrompt(newPrompt)
                 }
             )
-            .presentationDetents([.large])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
         .alert(alertTitle, isPresented: $showingAlert) {
@@ -146,47 +146,45 @@ struct UnifiedManagementView: View {
     }
 }
 
-
-
 struct ServerManagementTab: View {
     @ObservedObject var serverManager: ServerManager
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Server Status Card
-            VStack(spacing: 16) {
+        VStack(spacing: 16) {
+            // Compact Server Status Card
+            VStack(spacing: 12) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Server Status")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color(.darkGray))
                         
                         Text(serverManager.isRunning ? "Running" : "Stopped")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(serverManager.isRunning ? .green : .red)
                     }
                     
                     Spacer()
                     
-                    // Status indicator
+                    // Compact Status indicator
                     StatusIndicator(
                         isActive: serverManager.isRunning,
                         activeText: "Online",
                         inactiveText: "Offline",
-                        size: 12
+                        size: 8
                     )
                 }
                 
-                // Connection Info
+                // Compact Connection Info
                 if serverManager.isRunning {
-                    ConnectionInfo()
+                    CompactConnectionInfo()
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
-            // Control Buttons
-            VStack(spacing: 12) {
-                ActionButton(
+            // Compact Control Buttons
+            VStack(spacing: 8) {
+                CompactActionButton(
                     title: serverManager.isRunning ? "Stop Server" : "Start Server",
                     icon: serverManager.isRunning ? "stop.circle.fill" : "play.circle.fill",
                     action: {
@@ -200,7 +198,7 @@ struct ServerManagementTab: View {
                     isLoading: serverManager.isStarting
                 )
                 
-                ActionButton(
+                CompactActionButton(
                     title: "Copy Connection Command",
                     icon: "doc.on.doc",
                     action: {
@@ -210,11 +208,11 @@ struct ServerManagementTab: View {
                     isEnabled: serverManager.isRunning
                 )
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
-            // Status Messages
+            // Compact Status Messages
             if !serverManager.statusMessage.isEmpty {
-                AlertBanner(
+                CompactAlertBanner(
                     title: "Server Status",
                     message: serverManager.statusMessage,
                     type: serverManager.isRunning ? .success : .warning
@@ -236,175 +234,41 @@ struct LLMManagementTab: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Action Buttons
-            HStack(spacing: 12) {
-                Button(action: {
-                    Task {
-                        await viewModel.refreshModels()
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Refresh")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(.white.opacity(0.8))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                    )
-                }
-                .disabled(viewModel.isLoading)
-                
-                Button(action: {
-                    showingModelDownload = true
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Download Model")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray)
-                    )
-                }
-                .disabled(!viewModel.isConnected || !viewModel.downloadingModel.isEmpty)
-                
-                Button(action: {
-                    showingSystemPromptEditor = true
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "text.bubble")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("System Prompt")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(.white.opacity(0.8))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                    )
-                }
-                
-                Button(action: {
-                    // Test inline editing
-                    print("Inline test button pressed")
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Test Input")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(.white.opacity(0.8))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.purple.opacity(0.2))
-                    )
-                }
-                
-                Button(action: {
-                    if serverManager.isRunning {
-                        serverManager.stopServer()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            serverManager.startServer()
-                            viewModel.needsServerRestart = false
+            // Compact Action Buttons
+            HStack(spacing: 8) {
+                CompactButton(
+                    title: "Refresh",
+                    icon: "arrow.clockwise",
+                    action: {
+                        Task {
+                            await viewModel.refreshModels()
                         }
-                    } else {
-                        serverManager.startServer()
-                        viewModel.needsServerRestart = false
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.clockwise.circle")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Restart Server")
-                            .font(.system(size: 14, weight: .medium))
-                        if viewModel.needsServerRestart {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.yellow)
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(viewModel.needsServerRestart ? Color.red : Color.orange)
-                    )
-                }
-                .disabled(serverManager.isStarting)
-                
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            .padding(.bottom, 16)
-            
-            // Download Progress
-            if !viewModel.downloadingModel.isEmpty {
-                VStack(spacing: 8) {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Downloading \(viewModel.downloadingModel)...")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                    
-                    if !viewModel.downloadProgress.isEmpty {
-                        Text(viewModel.downloadProgress)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.2))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.4), lineWidth: 1)
-                        )
+                    },
+                    isEnabled: !viewModel.isLoading
                 )
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
-            }
-            
-            // Restart Required Notification
-            if viewModel.needsServerRestart {
-                HStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.orange)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Server Restart Required")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary)
-                        
-                        Text("Configuration changes have been made. Restart the server to apply them.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                
+                CompactButton(
+                    title: "Download",
+                    icon: "plus.circle.fill",
+                    action: {
+                        showingModelDownload = true
+                    },
+                    isEnabled: !viewModel.isConnected || !viewModel.downloadingModel.isEmpty,
+                    isPrimary: true
+                )
+                
+                CompactButton(
+                    title: "System Prompt",
+                    icon: "text.bubble",
+                    action: {
+                        showingSystemPromptEditor = true
                     }
-                    
-                    Spacer()
-                    
-                    Button("Restart Now") {
+                )
+                
+                CompactButton(
+                    title: "Restart Server",
+                    icon: "arrow.clockwise.circle",
+                    action: {
                         if serverManager.isRunning {
                             serverManager.stopServer()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -415,124 +279,83 @@ struct LLMManagementTab: View {
                             serverManager.startServer()
                             viewModel.needsServerRestart = false
                         }
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.orange)
-                    )
-                    .disabled(serverManager.isStarting)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                        )
+                    },
+                    isEnabled: !serverManager.isStarting,
+                    isWarning: viewModel.needsServerRestart
                 )
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
-            }
-            
-            // Test Input Section
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Test Input (Inline)")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
                 
-                TextField("Test typing here...", text: .constant(""))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal, 24)
+                Spacer()
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
             
-            // Models Section
-            VStack(alignment: .leading, spacing: 16) {
+            // Compact Download Progress
+            if !viewModel.downloadingModel.isEmpty {
+                CompactDownloadProgress(
+                    modelName: viewModel.downloadingModel,
+                    progress: viewModel.downloadProgress
+                )
+            }
+            
+            // Compact Restart Required Notification
+            if viewModel.needsServerRestart {
+                CompactRestartNotification {
+                    if serverManager.isRunning {
+                        serverManager.stopServer()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            serverManager.startServer()
+                            viewModel.needsServerRestart = false
+                        }
+                    } else {
+                        serverManager.startServer()
+                        viewModel.needsServerRestart = false
+                    }
+                }
+            }
+            
+            // Compact Models Section
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Installed Models")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                     
                     Spacer()
                     
                     if !viewModel.defaultModel.isEmpty {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 4) {
                             Image(systemName: "star.fill")
-                                .font(.system(size: 12))
+                                .font(.system(size: 10))
                                 .foregroundColor(.yellow)
-                                                    Text("Default: \(viewModel.defaultModel)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
+                            Text("Default: \(viewModel.defaultModel)")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 6)
                                 .fill(Color.gray.opacity(0.15))
                         )
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 if viewModel.isLoading {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .scaleEffect(1.2)
-                        Text("Loading models...")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 40)
+                    CompactLoadingView(message: "Loading models...")
                 } else if viewModel.models.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "brain.head.profile")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary.opacity(0.6))
-                        
-                        VStack(spacing: 8) {
-                            Text("No models installed")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                            
-                            Text("Download a model to get started with AI conversations")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button(action: {
+                    CompactEmptyStateView(
+                        onDownload: {
                             showingModelDownload = true
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Download Your First Model")
-                            }
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.gray)
-                            )
-                        }
-                        .disabled(!viewModel.isConnected)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 40)
+                        },
+                        isConnected: viewModel.isConnected
+                    )
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 12) {
+                        LazyVStack(spacing: 8) {
                             ForEach(viewModel.models, id: \.name) { model in
-                                ModernModelRowView(
+                                CompactModelRowView(
                                     model: model,
                                     isDefault: model.name == viewModel.defaultModel,
                                     onSetDefault: {
@@ -545,8 +368,8 @@ struct LLMManagementTab: View {
                                 )
                             }
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 20)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                     }
                 }
             }
@@ -555,55 +378,389 @@ struct LLMManagementTab: View {
     }
 }
 
-// Reuse existing components
-struct ModernModelRowView: View {
+// MARK: - Compact UI Components
+
+struct CompactActionButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+    let isEnabled: Bool
+    let isLoading: Bool
+    
+    init(
+        title: String,
+        icon: String,
+        action: @escaping () -> Void,
+        isEnabled: Bool = true,
+        isLoading: Bool = false
+    ) {
+        self.title = title
+        self.icon = icon
+        self.action = action
+        self.isEnabled = isEnabled
+        self.isLoading = isLoading
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .foregroundColor(.white)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .medium))
+                }
+                
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.gray)
+            )
+            .foregroundColor(.white)
+        }
+        .disabled(!isEnabled || isLoading)
+    }
+}
+
+struct CompactButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+    let isEnabled: Bool
+    let isPrimary: Bool
+    let isWarning: Bool
+    
+    init(
+        title: String,
+        icon: String,
+        action: @escaping () -> Void,
+        isEnabled: Bool = true,
+        isPrimary: Bool = false,
+        isWarning: Bool = false
+    ) {
+        self.title = title
+        self.icon = icon
+        self.action = action
+        self.isEnabled = isEnabled
+        self.isPrimary = isPrimary
+        self.isWarning = isWarning
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .medium))
+                Text(title)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundColor(.white.opacity(isEnabled ? 0.9 : 0.5))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(backgroundColor)
+            )
+        }
+        .disabled(!isEnabled)
+    }
+    
+    private var backgroundColor: Color {
+        if !isEnabled {
+            return Color.gray.opacity(0.3)
+        } else if isWarning {
+            return Color.red
+        } else if isPrimary {
+            return Color.gray
+        } else {
+            return Color.gray.opacity(0.2)
+        }
+    }
+}
+
+struct CompactConnectionInfo: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Label("Telnet Port", systemImage: "network")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color(.darkGray))
+                
+                Spacer()
+                
+                Text("6400")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray)
+                    )
+            }
+            
+            HStack {
+                Label("Connection", systemImage: "terminal")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color(.darkGray))
+                
+                Spacer()
+                
+                Text(Constants.telnetCommand)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(Color(.darkGray))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.15))
+                    )
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct CompactAlertBanner: View {
+    let title: String
+    let message: String
+    let type: AlertBanner.AlertType
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: type.icon)
+                .font(.system(size: 12))
+                .foregroundColor(type.color)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text(message)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(type.color.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(type.color.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+struct CompactDownloadProgress: View {
+    let modelName: String
+    let progress: String
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                ProgressView()
+                    .scaleEffect(0.6)
+                Text("Downloading \(modelName)...")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            
+            if !progress.isEmpty {
+                Text(progress)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.gray.opacity(0.2))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+}
+
+struct CompactRestartNotification: View {
+    let onRestart: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.orange)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Server Restart Required")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text("Configuration changes have been made. Restart the server to apply them.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Button("Restart") {
+                onRestart()
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.orange)
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.orange.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+}
+
+struct CompactLoadingView: View {
+    let message: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .scaleEffect(0.8)
+            Text(message)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 20)
+    }
+}
+
+struct CompactEmptyStateView: View {
+    let onDownload: () -> Void
+    let isConnected: Bool
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 32))
+                .foregroundColor(.secondary.opacity(0.6))
+            
+            VStack(spacing: 4) {
+                Text("No models installed")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Text("Download a model to get started with AI conversations")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button(action: onDownload) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Download Your First Model")
+                }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.gray)
+                )
+            }
+            .disabled(!isConnected)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 20)
+    }
+}
+
+struct CompactModelRowView: View {
     let model: OllamaModel
     let isDefault: Bool
     let onSetDefault: () -> Void
     let onRemove: () -> Void
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // Model Icon
             VStack {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 20))
+                    .font(.system(size: 14))
                     .foregroundColor(isDefault ? .blue : .secondary)
             }
-            .frame(width: 40, height: 40)
+            .frame(width: 28, height: 28)
             .background(
                 Circle()
                     .fill(isDefault ? Color.blue.opacity(0.1) : Color.gray.opacity(0.2))
             )
             
             // Model Info
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(model.name)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
                     if isDefault {
                         Text("DEFAULT")
-                            .font(.system(size: 10, weight: .bold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .font(.system(size: 8, weight: .bold))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
                             .background(
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 4)
                                     .fill(Color.blue)
                             )
                             .foregroundColor(.white)
                     }
                 }
                 
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     Label(formatFileSize(model.size), systemImage: "externaldrive")
-                        .font(.system(size: 12))
+                        .font(.system(size: 9))
                         .foregroundColor(.white.opacity(0.7))
                     
                     Label(formatDate(model.modifiedAt), systemImage: "calendar")
-                        .font(.system(size: 12))
+                        .font(.system(size: 9))
                         .foregroundColor(.white.opacity(0.7))
                 }
             }
@@ -611,20 +768,20 @@ struct ModernModelRowView: View {
             Spacer()
             
             // Action Buttons
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if !isDefault {
                     Button(action: onSetDefault) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 2) {
                             Image(systemName: "star")
-                                .font(.system(size: 12))
+                                .font(.system(size: 8))
                             Text("Set Default")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 8, weight: .medium))
                         }
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
                         .background(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: 3)
                                 .fill(Color.blue.opacity(0.1))
                         )
                     }
@@ -632,9 +789,9 @@ struct ModernModelRowView: View {
                 
                 Button(action: onRemove) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14))
+                        .font(.system(size: 10))
                         .foregroundColor(.red)
-                        .padding(8)
+                        .padding(4)
                         .background(
                             Circle()
                                 .fill(Color.red.opacity(0.1))
@@ -643,12 +800,12 @@ struct ModernModelRowView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color.gray.opacity(0.15))
-                .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
         )
     }
     
@@ -674,7 +831,7 @@ struct ModernModelRowView: View {
     }
 }
 
-struct ModernModelDownloadView: View {
+struct CompactModelDownloadView: View {
     @Binding var isPresented: Bool
     let onDownload: (String) -> Void
     
@@ -689,46 +846,46 @@ struct ModernModelDownloadView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Header
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text("Download Model")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 
                 Text("Choose a model to download from Ollama")
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.7))
             }
             
             // Popular Models
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("Popular Models")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
-                ], spacing: 12) {
+                ], spacing: 8) {
                     ForEach(popularModels, id: \.self) { model in
                         Button(action: {
                             modelName = model
                         }) {
                             HStack {
                                 Image(systemName: "brain.head.profile")
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 12))
                                     .foregroundColor(modelName == model ? .white : .blue)
                                 
                                 Text(model)
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(modelName == model ? .white : .white.opacity(0.8))
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
                             .background(
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 6)
                                     .fill(modelName == model ? Color.blue : Color.gray.opacity(0.2))
                             )
                         }
@@ -738,18 +895,18 @@ struct ModernModelDownloadView: View {
             }
             
             // Custom Model Input
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Or enter custom model name:")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 
                 TextField("e.g., llama3.2:8b", text: $modelName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
             }
             
             // Action Buttons
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Button("Cancel") {
                     isPresented = false
                 }
@@ -765,26 +922,27 @@ struct ModernModelDownloadView: View {
                 .keyboardShortcut(.return)
                 .disabled(modelName.isEmpty)
                 .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(modelName.isEmpty ? Color.gray : Color.blue)
                 )
             }
         }
-        .padding(32)
-        .frame(width: 500, height: 400)
+        .padding(20)
+        .frame(width: 400, height: 320)
         .background(Color.gray.opacity(0.1))
     }
 }
 
-struct SystemPromptEditorView: View {
+struct CompactSystemPromptEditorView: View {
     @Binding var isPresented: Bool
     let currentPrompt: String
     let onSave: (String) -> Void
     
     @State private var editedPrompt: String
+    @FocusState private var isTextFieldFocused: Bool
     
     init(isPresented: Binding<Bool>, currentPrompt: String, onSave: @escaping (String) -> Void) {
         self._isPresented = isPresented
@@ -794,40 +952,58 @@ struct SystemPromptEditorView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Simple header
-            Text("System Prompt")
-                .font(.headline)
+        VStack(spacing: 12) {
+            // Header
+            Text("System Prompt Editor")
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
             
-            // Simple text editor
+            // Text editor
             TextEditor(text: $editedPrompt)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundColor(.white)
+                .focused($isTextFieldFocused)
+                .textFieldStyle(PlainTextFieldStyle())
                 .background(Color.black.opacity(0.3))
-                .frame(height: 150)
+                .frame(height: 120)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .onAppear {
+                    isTextFieldFocused = true
+                }
             
-            // Simple buttons
-            HStack(spacing: 12) {
+            // Action buttons
+            HStack(spacing: 8) {
                 Button("Cancel") {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
+                .font(.system(size: 11))
                 
                 Button("Reset") {
                     editedPrompt = "You are a helpful AI assistant. Keep replies concise, friendly, and natural. Respond in plain text without special formatting or markdown."
                 }
+                .font(.system(size: 11))
                 
                 Button("Save") {
                     onSave(editedPrompt)
                     isPresented = false
                 }
                 .keyboardShortcut(.return)
-                .buttonStyle(.borderedProminent)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue)
+                )
             }
         }
-        .padding(20)
-        .frame(width: 400, height: 250)
+        .padding(16)
+        .frame(width: 350, height: 200)
         .background(Color.black.opacity(0.8))
     }
 }
